@@ -1,0 +1,641 @@
+Act as a senior product engineer, senior Flutter architect, senior backend engineer, senior database designer, and senior DevOps engineer.
+
+Build a production-style MVP for my Project 1 called:
+
+SkillSnap — Micro-Service Booking Platform for Local SMEs with AI-Powered Local Services Marketplace
+
+This project is for Malaysia (initially Kuala Lumpur) and must feel modern, professional, scalable, and investor/demo ready. Do not build a toy app. Build a real end-to-end MVP with clean architecture, production-grade code quality, clear folder structure, reusable components, good UX, proper validation, error handling, and deployment-ready configuration.
+
+IMPORTANT:
+- Do not stop at mock screens.
+- Build working flows end-to-end.
+- Make reasonable product decisions without asking repeated questions.
+- Use clean code, modular architecture, and strong defaults.
+- If some third-party service keys are unavailable, create adapters + mock/fallback providers so the app still runs locally and in Replit.
+- Prefer practical implementation over overengineering.
+- Deliver something that can be demoed immediately.
+
+==================================================
+1. PRODUCT VISION
+==================================================
+
+SkillSnap is an AI-powered on-demand local services marketplace for Malaysia. It connects consumers with verified local SMEs/service providers for services like:
+- Electrical repair
+- Plumbing
+- Cleaning and maintenance
+- Automotive repair
+
+The platform must support:
+1) Consumer mobile app
+2) Provider mobile app
+3) Admin web dashboard
+4) Shared backend APIs
+5) AI-based provider matching
+6) Booking lifecycle management
+7) Secure payment flow
+8) Notifications
+9) Ratings and reviews
+10) Provider verification and admin oversight
+
+==================================================
+2. RECOMMENDED TECH STACK
+==================================================
+
+Use a monorepo.
+
+Frontend:
+- Flutter for Consumer Mobile App
+- Flutter for Provider Mobile App
+- Next.js + TypeScript + Tailwind + shadcn/ui for Admin Dashboard
+
+Backend:
+- Node.js with NestJS (preferred) or structured Express if needed
+- REST API first, with clear module boundaries
+- WebSocket support for live booking status updates
+
+Database:
+- PostgreSQL
+- Prisma ORM
+
+Caching / realtime:
+- Redis if available
+- If Redis is not available in Replit, create an abstraction and fallback gracefully
+
+Auth:
+- Production-style email/password auth with JWT access + refresh tokens
+- Password hashing with bcrypt/argon2
+- Role-based access control: consumer, provider, admin
+- Design auth so Firebase Auth can be integrated later if needed
+
+Payments:
+- Stripe test mode preferred
+- Add a payment provider interface so mock payment mode also works if Stripe keys are missing
+
+Maps / location:
+- Google Maps or Mapbox
+- If API keys are missing, use coordinate input + static map placeholder fallback
+- Use Haversine distance calculation in backend for matching
+
+Notifications:
+- In-app notifications
+- Email notifications adapter
+- Push notification abstraction so FCM can be added later
+- For MVP, live updates through WebSockets plus in-app notification center is required
+
+Localization:
+- English first
+- Architecture ready for Bahasa Malaysia
+- Use MYR currency and Malaysia timezone conventions
+
+==================================================
+3. MONOREPO STRUCTURE
+==================================================
+
+Create a clean monorepo such as:
+
+/apps
+  /consumer_app_flutter
+  /provider_app_flutter
+  /admin_dashboard
+  /api
+
+/packages
+  /shared-types
+  /ui-tokens
+  /config
+
+/infrastructure
+  docker-compose.yml
+  env examples
+  seed scripts
+
+==================================================
+4. CORE MVP USER FLOWS
+==================================================
+
+A. Consumer flow
+- Register / login
+- Complete profile
+- Allow GPS or enter location manually
+- Browse service categories
+- Create service request:
+  - category
+  - job title
+  - job description
+  - photos optional
+  - preferred date
+  - preferred time
+  - service address
+  - urgency
+- Submit request
+- See matched providers ranked by AI matching score
+- View provider profile, rating, distance, estimated price, availability
+- Confirm booking
+- Pay in-app
+- Track booking status:
+  - requested
+  - matched
+  - accepted
+  - provider on the way
+  - arrived
+  - in progress
+  - completed
+  - cancelled
+- Receive notifications
+- See booking history
+- Rate/review completed booking
+
+B. Provider flow
+- Register / login
+- Create provider business profile
+- Upload identity/credential documents
+- Select service categories
+- Set pricing rules / base pricing
+- Set service radius
+- Set weekly availability/schedule
+- Receive matched booking requests
+- Accept / reject bookings
+- Update status through the service lifecycle
+- View route / customer location
+- Manage schedule
+- View earnings summary
+- View booking history
+- View ratings and reviews
+- Manage portfolio/profile
+
+C. Admin flow
+- Login as admin
+- Dashboard overview with KPIs
+- Review pending provider verifications
+- Approve / reject provider credentials
+- View users, providers, bookings, payments
+- Handle disputes
+- Monitor ratings and suspicious activity
+- Basic analytics:
+  - bookings by category
+  - bookings by status
+  - provider acceptance rate
+  - average ratings
+  - revenue / GMV
+- Manage categories and platform settings
+
+==================================================
+5. PRODUCT REQUIREMENTS
+==================================================
+
+Consumer app must include:
+- polished onboarding
+- auth screens
+- location permission flow
+- home screen with categories and recent bookings
+- service request creation wizard
+- matched provider list
+- provider details screen
+- checkout/payment screen
+- live booking tracking screen
+- notifications center
+- booking history
+- profile/settings
+- rate/review flow
+
+Provider app must include:
+- provider onboarding
+- verification submission
+- service categories and pricing setup
+- availability management
+- request inbox
+- booking details
+- accept/reject actions
+- live job management
+- earnings dashboard
+- booking history
+- profile/settings
+
+Admin dashboard must include:
+- secure admin login
+- overview dashboard
+- provider verification queue
+- booking management table
+- user management table
+- provider management table
+- payments table
+- disputes page
+- analytics page
+- settings page
+
+==================================================
+6. AI MATCHING ENGINE
+==================================================
+
+Do NOT fake the AI with marketing words only.
+Implement a real explainable matching engine for MVP.
+
+Create a backend matching service that ranks providers using weighted scoring based on:
+- distance from consumer
+- provider average rating
+- provider current availability
+- provider workload / active jobs
+- provider acceptance rate
+- provider completion rate
+- category match
+- service radius coverage
+- past performance / reputation score
+
+For MVP:
+- implement a deterministic scoring engine with adjustable weights in config
+- return ranked providers with score breakdown
+- store score explanation for debugging/admin review
+- make the architecture ready to swap in a true ML model later
+
+Optional bonus:
+- dynamic pricing suggestion based on urgency, demand, distance, and provider base pricing
+- fraud/risk flags for suspicious cancellation/payment behavior
+
+==================================================
+7. BACKEND MODULES
+==================================================
+
+Build these modules cleanly:
+
+- Auth
+- Users
+- Providers
+- Provider Verification
+- Categories
+- Service Requests
+- Matching
+- Bookings
+- Payments
+- Reviews
+- Notifications
+- Availability / Schedule
+- Admin
+- Analytics
+- Files / Uploads
+- Health / Monitoring
+
+Add:
+- OpenAPI / Swagger docs
+- DTO validation
+- centralized error handling
+- structured logging
+- environment config validation
+- role guards
+- request rate limiting
+- pagination, filtering, sorting
+- audit logs for admin-sensitive actions
+
+==================================================
+8. DATABASE DESIGN
+==================================================
+
+Design a proper PostgreSQL schema including at minimum:
+
+users
+- id
+- role
+- full_name
+- email
+- phone
+- password_hash
+- avatar_url
+- is_active
+- created_at
+- updated_at
+
+consumer_profiles
+- user_id
+- default_address
+- latitude
+- longitude
+
+provider_profiles
+- user_id
+- business_name
+- bio
+- years_experience
+- verification_status
+- service_radius_km
+- avg_rating
+- completion_rate
+- acceptance_rate
+- total_jobs
+- reputation_score
+
+provider_documents
+- id
+- provider_id
+- type
+- file_url
+- status
+- reviewed_by
+- reviewed_at
+
+service_categories
+- id
+- name
+- icon
+- is_active
+
+provider_services
+- id
+- provider_id
+- category_id
+- base_price
+- price_type
+- is_active
+
+provider_availability
+- id
+- provider_id
+- day_of_week
+- start_time
+- end_time
+- is_available
+
+service_requests
+- id
+- consumer_id
+- category_id
+- title
+- description
+- address
+- latitude
+- longitude
+- preferred_date
+- preferred_time
+- urgency
+- status
+- created_at
+
+service_request_images
+- id
+- request_id
+- file_url
+
+matches
+- id
+- request_id
+- provider_id
+- score
+- score_breakdown_json
+- rank
+
+bookings
+- id
+- request_id
+- consumer_id
+- provider_id
+- status
+- scheduled_at
+- accepted_at
+- started_at
+- completed_at
+- cancelled_at
+- final_price
+- payment_status
+
+payments
+- id
+- booking_id
+- provider
+- external_payment_id
+- amount
+- currency
+- status
+- paid_at
+
+reviews
+- id
+- booking_id
+- consumer_id
+- provider_id
+- rating
+- comment
+- created_at
+
+notifications
+- id
+- user_id
+- type
+- title
+- body
+- is_read
+- created_at
+
+disputes
+- id
+- booking_id
+- opened_by
+- reason
+- status
+- resolution_note
+
+admin_audit_logs
+- id
+- admin_id
+- action
+- entity_type
+- entity_id
+- metadata_json
+- created_at
+
+==================================================
+9. UX / UI DIRECTION
+==================================================
+
+Design style:
+- premium, clean, modern, trustworthy
+- not childish
+- inspired by Uber, Grab, Airbnb, Linear-level cleanliness
+- excellent spacing, typography hierarchy, clear CTAs
+- strong mobile UX
+- smooth but restrained animations
+- accessible contrast
+- polished empty states, loading states, error states, success states
+- professional icons and cards
+- modern admin dashboard with tables, filters, charts, side navigation
+
+Brand direction:
+- product name: SkillSnap
+- trustworthy local-services brand
+- use a clean contemporary visual language
+- MYR currency
+- Kuala Lumpur seed data and addresses
+- service cards should feel premium and practical
+
+==================================================
+10. NON-FUNCTIONAL EXPECTATIONS
+==================================================
+
+The MVP should be production-style with:
+- modular architecture
+- reusable services and widgets/components
+- responsive design
+- secure auth
+- proper form validation
+- clean API boundaries
+- low-friction onboarding
+- localization-ready strings
+- graceful fallback handling when APIs/keys are missing
+- testable services
+- readable docs
+- CI-ready codebase
+- Docker support where practical
+
+Performance expectations:
+- matching and booking actions should feel fast
+- avoid obvious N+1 queries
+- use indexes for key query patterns
+- lazy load where appropriate
+- optimize list rendering
+
+==================================================
+11. IMPLEMENTATION DECISIONS
+==================================================
+
+Make these practical decisions:
+
+- Use seeded demo data for Kuala Lumpur
+- Include at least 8–12 seeded providers across categories
+- Include realistic provider ratings, service radii, pricing, and schedules
+- Seed a few past bookings/reviews for credibility
+- Add demo accounts:
+  - consumer demo
+  - provider demo
+  - admin demo
+
+Booking lifecycle must be fully implemented.
+Payment lifecycle must be fully implemented in test mode or mock mode.
+Matching must be real and explainable.
+Provider verification queue must work.
+Admin analytics must show real data from database.
+
+==================================================
+12. FILE UPLOADS
+==================================================
+
+Support:
+- provider credential upload
+- consumer service photo upload
+- avatar upload
+
+Use local storage or S3-compatible abstraction.
+If cloud storage keys are missing, fallback to local dev storage cleanly.
+
+==================================================
+13. SECURITY RULES
+==================================================
+
+Implement:
+- hashed passwords
+- JWT access + refresh flow
+- protected routes
+- role guards
+- input validation
+- server-side authorization
+- secure secrets handling
+- sanitization where relevant
+- audit logging for admin actions
+
+Do not expose sensitive admin data to non-admin users.
+Do not trust client-supplied price calculations.
+
+==================================================
+14. TESTING
+==================================================
+
+Add:
+- backend unit tests for matching logic and core booking logic
+- at least basic integration tests for auth and booking flow
+- sample widget/component tests where reasonable
+- health endpoint
+- seed script
+- reset script if practical
+
+==================================================
+15. DOCUMENTATION
+==================================================
+
+Generate:
+- README.md with setup instructions
+- architecture overview
+- monorepo explanation
+- env.example files
+- API documentation
+- demo credentials
+- deployment notes
+- assumptions and tradeoffs
+- future enhancement section for:
+  - real ML model
+  - FCM push notifications
+  - Firebase Auth swap
+  - DuitNow FPX integration
+  - multilingual support expansion
+  - live route tracking refinement
+
+==================================================
+16. DELIVERY EXPECTATION
+==================================================
+
+I want the output to include:
+1. Complete codebase
+2. Monorepo structure
+3. Database schema and migrations
+4. Seed data
+5. Working consumer app
+6. Working provider app
+7. Working admin dashboard
+8. Working backend APIs
+9. Auth + booking + matching + payment + review flow
+10. README and setup guide
+
+==================================================
+17. REPLIT-SPECIFIC INSTRUCTIONS
+==================================================
+
+Optimize for Replit:
+- Keep setup straightforward
+- Avoid unnecessary complexity
+- Use environment variables cleanly
+- Make local/dev boot easy
+- Provide scripts to run each app
+- If mobile preview is limited in Replit, still generate complete Flutter apps and provide clear run instructions
+- Ensure backend and admin dashboard can be previewed directly in Replit
+- Prefer stable libraries and avoid abandoned packages
+
+==================================================
+18. BUILD ORDER
+==================================================
+
+Build in this order:
+1. monorepo scaffolding
+2. database schema + Prisma
+3. backend auth and core modules
+4. matching service
+5. bookings + payments + reviews
+6. admin dashboard
+7. consumer mobile app
+8. provider mobile app
+9. live updates and notifications
+10. seed/demo polish
+11. docs and deployment notes
+
+==================================================
+19. DEFINITION OF DONE
+==================================================
+
+The project is done only when:
+- user can sign up/login
+- consumer can create a request
+- system can rank and show matched providers
+- consumer can confirm a booking
+- payment can be processed in test/mock mode
+- provider can accept and update booking status
+- consumer can track booking progress
+- consumer can leave a rating/review
+- admin can verify providers and monitor activity
+- demo accounts and seed data work
+- setup documentation is complete
+
+Now start building the full production-style MVP. Do not stop after planning. Create the actual implementation with real files, clear code, and working flows.
