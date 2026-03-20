@@ -36,8 +36,12 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await login(email.trim().toLowerCase(), password);
-      router.replace("/(tabs)");
+      const loggedInUser = await login(email.trim().toLowerCase(), password);
+      if (loggedInUser.role === "provider") {
+        router.replace("/(provider-tabs)/dashboard");
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err: any) {
       Alert.alert("Login Failed", err.message || "Invalid credentials. Please check your email and password.");
     } finally {

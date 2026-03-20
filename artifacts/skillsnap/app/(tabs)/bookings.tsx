@@ -48,11 +48,7 @@ export default function BookingsScreen() {
   });
 
   const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/booking/${item.id}` as any)}
-      activeOpacity={0.8}
-    >
+    <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.bookingIdRow}>
           <View style={[styles.iconWrap, { backgroundColor: Colors.primary + "15" }]}>
@@ -85,6 +81,16 @@ export default function BookingsScreen() {
         {item.finalPrice && (
           <Text style={styles.priceText}>MYR {Number(item.finalPrice).toFixed(2)}</Text>
         )}
+      </View>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={styles.viewBtn}
+          onPress={() => router.push(`/booking/${item.id}` as any)}
+        >
+          <Text style={styles.viewBtnText}>View Details</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+        </TouchableOpacity>
         {item.paymentStatus === "pending" && item.status === "completed" && (
           <TouchableOpacity
             style={styles.payNowBtn}
@@ -94,7 +100,7 @@ export default function BookingsScreen() {
           </TouchableOpacity>
         )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -182,13 +188,36 @@ const styles = StyleSheet.create({
   footerLeft: { flexDirection: "row", alignItems: "center", gap: 4, flex: 1 },
   footerText: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary },
   priceText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.primary },
+  cardActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  viewBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary + "30",
+    backgroundColor: Colors.primary + "08",
+  },
+  viewBtnText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.primary },
   payNowBtn: {
+    flex: 1,
     backgroundColor: Colors.accent,
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
   },
-  payNowText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: "#fff" },
+  payNowText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: "#fff" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   empty: { alignItems: "center", paddingTop: 80, gap: 12 },
   emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text },

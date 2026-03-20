@@ -88,11 +88,7 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
         {/* Hero CTA */}
-        <TouchableOpacity
-          style={styles.heroCTA}
-          onPress={() => router.push("/request/create" as any)}
-          activeOpacity={0.9}
-        >
+        <View style={styles.heroCTA}>
           <View style={styles.heroContent}>
             <Text style={styles.heroLabel}>Need a skilled professional?</Text>
             <Text style={styles.heroTitle}>Book a Service</Text>
@@ -109,7 +105,7 @@ export default function HomeScreen() {
             <Text style={styles.heroBtnText}>Get Matched Now</Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
 
         {/* Active Bookings */}
         {activeBookings.length > 0 && (
@@ -376,6 +372,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.accent,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 100,
     elevation: 8,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
