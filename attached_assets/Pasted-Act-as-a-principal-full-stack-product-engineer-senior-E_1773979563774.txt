@@ -1,0 +1,460 @@
+Act as a principal full-stack product engineer, senior Expo/React Native architect, senior backend engineer, and senior UI/UX engineer.
+
+You are working inside an EXISTING Replit project for:
+
+SkillSnap — AI-powered local service booking platform for Malaysia.
+
+IMPORTANT CONTEXT:
+This existing project already appears to have:
+- a working Consumer mobile app
+- a working Backend API
+- a connected Database
+- seeded providers and categories
+- booking/matching/payment/review routes at least partially implemented
+
+From the current project status and logs, the major missing or incomplete pieces are:
+- Provider mobile app
+- full provider-side end-to-end flow
+- provider verification flow UI
+- provider request inbox
+- provider accept/reject actions
+- provider job lifecycle management
+- provider schedule / availability management
+- provider earnings screen and history
+- provider reviews/performance UI
+- possible missing backend connections or APIs required by provider flows
+- possible missing real-time updates between consumer and provider apps
+- polishing and hardening of the full end-to-end MVP
+
+DO NOT build an admin dashboard.
+DO NOT rebuild the project from scratch.
+DO NOT throw away the current working consumer app/backend/database.
+DO NOT migrate the project to another stack unless absolutely necessary.
+Your job is to INSPECT the existing codebase first, then EXTEND and COMPLETE it professionally.
+
+==================================================
+PRIMARY GOAL
+==================================================
+
+Take the EXISTING SkillSnap project and turn it into a production-style MVP with:
+
+1. Existing Consumer mobile app preserved and improved where needed
+2. New Provider mobile app fully implemented
+3. Backend fully connected for both Consumer + Provider flows
+4. Database schema/models updated only as needed
+5. Realtime booking status sync working
+6. Provider verification / pending / approved flow working
+7. Provider earnings, schedule, profile, and history working
+8. All missing provider-side and connection gaps completed
+9. Professional, modern, polished design across both apps
+10. Demo-ready end-to-end flows without admin dashboard
+
+==================================================
+HOW TO WORK
+==================================================
+
+Step 1:
+Inspect the entire existing repository carefully before making big changes.
+Understand:
+- current folder structure
+- current mobile app structure
+- current backend routes/services/models
+- current database schema
+- current auth flow
+- current seed/demo accounts
+- current matching/booking/payment/review logic
+- current UI system and design direction
+
+Step 2:
+Preserve all working pieces.
+Only refactor when necessary to support missing functionality or improve quality.
+
+Step 3:
+Implement the missing provider-side product and missing backend integrations.
+
+Step 4:
+Test the full end-to-end flow and fix broken connections, missing routes, validation issues, and UI state issues.
+
+IMPORTANT:
+Do not stop at planning.
+Do not just describe what is missing.
+Actually implement the missing files, routes, screens, logic, and connections.
+
+==================================================
+NON-NEGOTIABLE RULES
+==================================================
+
+- Keep the existing project working
+- Do not remove working consumer features
+- Do not create an admin dashboard
+- Do not create fake placeholder screens that are not wired
+- Do not use local-only mock state for core booking/provider/payment data if backend already exists
+- Reuse existing backend/database/auth patterns where possible
+- Keep the architecture clean and scalable
+- Use strong validation, loading states, empty states, and error handling
+- Make practical engineering decisions without repeatedly asking for confirmation
+- Ship a real demo-ready MVP
+
+==================================================
+PRODUCT SCOPE TO COMPLETE
+==================================================
+
+A) CONSUMER APP
+Keep the existing consumer app, but inspect it and improve/fix anything needed so it fully connects with the new provider flow.
+
+The consumer side must fully support:
+- sign up / sign in
+- onboarding
+- category browsing
+- service request wizard
+- title + description + photos
+- date/time selection
+- location / address
+- AI-ranked provider matches
+- provider detail view
+- booking confirmation
+- payment flow
+- booking tracking
+- notifications
+- booking history
+- rating/review after completion
+
+If any of these exist but are partially wired, complete them.
+If any are visually weak or inconsistent, polish them professionally.
+
+B) PROVIDER APP
+Build the full Provider mobile app inside the existing project structure in the cleanest practical way.
+
+If the repo is already a monorepo, add a provider app cleanly.
+If the repo is a single Expo app, add a role-based provider app flow or a separate provider entry cleanly without breaking the existing consumer app.
+Use the most maintainable approach for the current codebase.
+
+The Provider app must include:
+
+1. Provider onboarding
+- branded onboarding flow
+- benefits/value proposition
+- CTA to sign in or register
+
+2. Provider authentication
+- sign up
+- sign in
+- demo provider login
+- secure auth using existing backend
+- proper validation and errors
+
+3. Provider setup/profile
+- personal name
+- business name
+- profile photo
+- bio
+- years of experience
+- service categories
+- pricing setup
+- service radius
+- contact details
+
+4. Provider verification flow
+- upload documents / credentials
+- verification status UI:
+  - pending
+  - approved
+  - rejected
+- newly registered providers should default to pending
+- approved providers are eligible for matching
+- if current project has no admin approval path, support:
+  - seed some approved demo providers
+  - add a development-safe auto-approve toggle only if needed for MVP testing
+- clearly show verification status in provider UI
+
+5. Provider services & pricing
+- manage service categories
+- base price / price type
+- optional min/max range
+- enable/disable services
+
+6. Availability & schedule management
+- weekly schedule
+- working hours
+- unavailable toggle
+- blackout dates/times
+- service radius management
+
+7. Provider home dashboard
+- clean KPI cards
+- pending requests count
+- active jobs count
+- today’s schedule
+- earnings summary
+- rating summary
+- quick actions
+
+8. Request inbox
+- matched or assigned requests list
+- request detail screen
+- accept/reject actions
+- urgency, location, estimated earnings, date/time
+- professional layout and state handling
+
+9. Active job management
+- update booking status:
+  - accepted
+  - en route
+  - arrived
+  - in progress
+  - completed
+  - cancelled
+- add notes / event log
+- customer details
+- service details
+- payment status visibility
+
+10. Booking history
+- completed / cancelled / rejected
+- filters
+- per-booking earnings
+- received ratings
+
+11. Earnings screen
+- total earnings
+- pending earnings
+- completed earnings
+- booking-level breakdown
+- weekly/monthly grouping if practical
+- clean charts/cards if the design system allows
+
+12. Reviews / performance screen
+- average rating
+- rating breakdown
+- customer comments
+- performance indicators such as completion rate / acceptance rate if supported by backend
+
+13. Provider settings
+- edit profile
+- manage services
+- manage schedule
+- logout
+
+==================================================
+BACKEND WORK TO COMPLETE
+==================================================
+
+Inspect the existing backend and complete any missing modules/routes/services needed for the full provider flow.
+
+At minimum, ensure backend support exists and is fully connected for:
+- provider registration/login
+- role-based auth
+- provider profile CRUD
+- provider document upload / verification state
+- provider service categories and pricing CRUD
+- provider availability CRUD
+- provider inbox / assigned requests
+- accept/reject request
+- booking status transitions
+- earnings summary
+- provider booking history
+- provider reviews fetch
+- consumer/provider notifications
+- realtime booking events
+- payment persistence
+- review creation rules
+- seed/demo data updates as needed
+
+Use the current project’s stack and conventions.
+Do not rewrite backend architecture unless necessary.
+Do not break existing consumer routes.
+
+Also ensure:
+- DTO/request validation
+- auth guards / role checks
+- clear error messages
+- pagination/filtering where helpful
+- structured route organization
+- proper status transition rules
+
+==================================================
+DATABASE / MODELS
+==================================================
+
+Inspect the current database schema/models first.
+Then extend only what is needed.
+
+Make sure the data model supports:
+- users with role
+- provider profile
+- provider documents / credentials
+- provider services/pricing
+- provider availability / blackout times
+- service requests
+- matches
+- bookings
+- payments
+- reviews
+- notifications
+- earnings aggregation or earnings-ready data
+- booking event log / status history if useful
+
+Preserve existing data where possible.
+Create/update seed data for demo credibility.
+
+==================================================
+REAL-TIME SYNC
+==================================================
+
+A major requirement is end-to-end connection between consumer and provider.
+
+Implement or complete real-time updates so that:
+- provider receives new assigned/matched request notifications
+- consumer sees provider accept/reject
+- consumer sees live booking status progression
+- provider sees payment confirmation where relevant
+- both sides’ notification centers stay updated
+
+Use the existing realtime mechanism if already present.
+If missing, add Socket.IO / WebSocket cleanly.
+
+Do not overcomplicate it.
+Make it reliable and demo-friendly.
+
+==================================================
+BOOKING LIFECYCLE RULES
+==================================================
+
+The full lifecycle should work correctly:
+
+Consumer:
+create request
+→ receive ranked providers
+→ confirm booking
+
+Provider:
+receive request/inbox item
+→ accept or reject
+
+Then:
+accepted
+→ en route
+→ arrived
+→ in progress
+→ completed
+or cancelled
+
+Rules:
+- pending/unapproved providers should not receive live bookings
+- only approved providers are matchable
+- review allowed only after completed booking
+- payment status must persist in backend
+- provider earnings should update based on completed/paid logic
+- invalid status transitions should be blocked
+
+==================================================
+UI / UX REQUIREMENTS
+==================================================
+
+This is critical.
+
+Design must look premium, modern, and startup-quality.
+Not generic.
+Not unfinished.
+Not overly flashy.
+
+Visual direction:
+- professional marketplace app
+- polished mobile-first layouts
+- refined spacing
+- clear typography hierarchy
+- premium cards
+- smooth micro-interactions
+- subtle gradients only where appropriate
+- strong status chips and badges
+- clean forms
+- polished onboarding
+- beautiful loading/skeleton states
+- thoughtful empty states
+- proper success/error states
+- high trust feeling for local services marketplace
+- consistent brand styling across consumer and provider apps
+
+Reference feel:
+Uber / Grab / Airbnb style product discipline, but with SkillSnap branding.
+
+Provider app should feel like a real business tool, not just a consumer app recolor.
+
+==================================================
+DEMO / SEED DATA
+==================================================
+
+Update or improve seed/demo data so the MVP feels real.
+
+Use realistic Kuala Lumpur / Klang Valley data:
+- approved demo providers
+- pending providers
+- realistic pricing in MYR
+- service categories
+- schedules
+- completed bookings
+- reviews
+- demo consumer account
+- demo provider account
+
+Ensure demo accounts are easy to use for testing both roles.
+
+==================================================
+QUALITY / HARDENING
+==================================================
+
+Before finishing:
+- run the project
+- fix TypeScript/build/runtime errors
+- verify auth works
+- verify provider onboarding works
+- verify provider cannot receive jobs until approved
+- verify consumer request creation works
+- verify matching works
+- verify provider accept/reject works
+- verify status changes sync correctly
+- verify payment state persists
+- verify review submission works
+- verify earnings/history screens show real backend data
+- verify important empty/error/loading states are present
+
+==================================================
+DOCUMENTATION
+==================================================
+
+Update the existing README with:
+- how to run the project
+- how to run consumer flow
+- how to run provider flow
+- demo credentials
+- seed instructions
+- any env variables needed
+- notes about provider approval/demo mode
+
+Keep docs practical and concise.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+This task is complete only when:
+
+1. Existing consumer app still works
+2. Provider mobile app is fully added
+3. Provider can sign up/sign in
+4. Provider can complete profile
+5. Provider can set services/pricing
+6. Provider can manage schedule/availability
+7. Provider can upload credentials and see verification state
+8. Approved providers can receive requests
+9. Provider can accept/reject and update booking status
+10. Consumer sees those updates in real time
+11. Provider sees booking history and earnings
+12. Provider sees reviews/performance
+13. Backend/database are fully connected for both apps
+14. No admin dashboard is added
+15. The result is polished, modern, demo-ready, and production-style
+
+Now inspect the existing codebase, preserve what already works, and implement all missing provider-side functionality plus any missing consumer/backend connections needed for a complete end-to-end MVP.
+Do not stop after planning.
+Actually build it.

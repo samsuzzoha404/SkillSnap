@@ -30,6 +30,8 @@ function RootLayoutNav() {
       <Stack.Screen name="auth/login" />
       <Stack.Screen name="auth/register" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(provider-tabs)" />
+      <Stack.Screen name="provider-setup" options={{ presentation: "card" }} />
       <Stack.Screen name="booking/[id]" options={{ presentation: "card" }} />
       <Stack.Screen name="provider/[id]" options={{ presentation: "card" }} />
       <Stack.Screen name="request/create" options={{ presentation: "modal" }} />

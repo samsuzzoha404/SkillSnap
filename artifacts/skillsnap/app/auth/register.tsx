@@ -26,6 +26,7 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState<"consumer" | "provider">("consumer");
   const [loading, setLoading] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -42,12 +43,24 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     try {
-      await register({ fullName: fullName.trim(), email: email.trim(), password, phone: phone.trim(), role: "consumer" });
-      router.replace("/(tabs)");
+      await register({ fullName: fullName.trim(), email: email.trim().toLowerCase(), password, phone: phone.trim(), role });
+      if (role === "provider") {
+        router.replace("/provider-setup" as any);
+      } else {
+        router.replace("/(tabs)");
+      }
     } catch (err: any) {
       Alert.alert("Registration Failed", err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding");
     }
   };
 
@@ -59,8 +72,9 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={[styles.container, { paddingTop: topPad + 16, paddingBottom: botPad + 24 }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
 
@@ -71,6 +85,32 @@ export default function RegisterScreen() {
           <Text style={styles.title}>Create account</Text>
           <Text style={styles.subtitle}>Join SkillSnap and find trusted local experts</Text>
         </View>
+
+        <View style={styles.roleRow}>
+          <TouchableOpacity
+            style={[styles.roleBtn, role === "consumer" && styles.roleBtnActive]}
+            onPress={() => setRole("consumer")}
+          >
+            <Ionicons name="person-outline" size={18} color={role === "consumer" ? "#fff" : Colors.textSecondary} />
+            <Text style={[styles.roleBtnText, role === "consumer" && styles.roleBtnTextActive]}>Customer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.roleBtn, role === "provider" && { ...styles.roleBtnActive, backgroundColor: "#10B981", borderColor: "#10B981" }]}
+            onPress={() => setRole("provider")}
+          >
+            <Ionicons name="briefcase-outline" size={18} color={role === "provider" ? "#fff" : Colors.textSecondary} />
+            <Text style={[styles.roleBtnText, role === "provider" && styles.roleBtnTextActive]}>Service Provider</Text>
+          </TouchableOpacity>
+        </View>
+
+        {role === "provider" && (
+          <View style={styles.providerNote}>
+            <Ionicons name="information-circle-outline" size={16} color="#2563EB" />
+            <Text style={styles.providerNoteText}>
+              As a provider, you'll set up your business profile after registration.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.form}>
           {[
@@ -114,7 +154,8 @@ export default function RegisterScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+            style={[styles.registerBtn, loading && styles.registerBtnDisabled,
+              role === "provider" && { backgroundColor: "#10B981" }]}
             onPress={handleRegister}
             disabled={loading}
             activeOpacity={0.85}
@@ -122,7 +163,9 @@ export default function RegisterScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.registerBtnText}>Create Account</Text>
+              <Text style={styles.registerBtnText}>
+                {role === "provider" ? "Create Provider Account" : "Create Account"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -141,7 +184,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: 24 },
   backBtn: { width: 44, height: 44, justifyContent: "center", marginBottom: 16 },
-  header: { marginBottom: 32 },
+  header: { marginBottom: 24 },
   logoMark: {
     width: 60, height: 60, borderRadius: 18,
     backgroundColor: Colors.primary,
@@ -149,6 +192,21 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: "Inter_700Bold", fontSize: 30, color: Colors.text, marginBottom: 8 },
   subtitle: { fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.textSecondary },
+  roleRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
+  roleBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.surface,
+  },
+  roleBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  roleBtnText: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.textSecondary },
+  roleBtnTextActive: { color: "#fff" },
+  providerNote: {
+    flexDirection: "row", gap: 10, alignItems: "center",
+    backgroundColor: "#EFF6FF", borderRadius: 10, padding: 12, marginBottom: 12,
+    borderWidth: 1, borderColor: "#BFDBFE",
+  },
+  providerNoteText: { fontFamily: "Inter_400Regular", fontSize: 13, color: "#1E40AF", flex: 1 },
   form: { gap: 18 },
   field: { gap: 8 },
   label: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.text },

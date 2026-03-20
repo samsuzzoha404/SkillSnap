@@ -105,7 +105,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="person" tintColor={color} size={24} />
             ) : (
-              <Feather name="person" size={22} color={color} />
+              <Feather name="user" size={22} color={color} />
             ),
         }}
       />

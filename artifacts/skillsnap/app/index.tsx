@@ -11,7 +11,11 @@ export default function Index() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.replace("/(tabs)");
+        if (user.role === "provider") {
+          router.replace("/(provider-tabs)");
+        } else {
+          router.replace("/(tabs)");
+        }
       } else {
         router.replace("/onboarding");
       }

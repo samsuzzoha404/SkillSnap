@@ -36,18 +36,31 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await login(email.trim(), password);
+      await login(email.trim().toLowerCase(), password);
       router.replace("/(tabs)");
     } catch (err: any) {
-      Alert.alert("Login Failed", err.message || "Invalid credentials");
+      Alert.alert("Login Failed", err.message || "Invalid credentials. Please check your email and password.");
     } finally {
       setLoading(false);
     }
   };
 
-  const fillDemo = () => {
+  const fillDemoConsumer = () => {
     setEmail("consumer@skillsnap.my");
     setPassword("password123");
+  };
+
+  const fillDemoProvider = () => {
+    setEmail("tan.wei.ming@skillsnap.my");
+    setPassword("password123");
+  };
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/onboarding");
+    }
   };
 
   return (
@@ -58,8 +71,9 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={[styles.container, { paddingTop: topPad + 16, paddingBottom: botPad + 24 }]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
 
@@ -71,10 +85,16 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Sign in to your SkillSnap account</Text>
         </View>
 
-        <TouchableOpacity style={styles.demoBtn} onPress={fillDemo}>
-          <Ionicons name="key-outline" size={16} color={Colors.primary} />
-          <Text style={styles.demoBtnText}>Use demo account</Text>
-        </TouchableOpacity>
+        <View style={styles.demoRow}>
+          <TouchableOpacity style={styles.demoBtn} onPress={fillDemoConsumer}>
+            <Ionicons name="person-outline" size={15} color={Colors.primary} />
+            <Text style={styles.demoBtnText}>Demo Consumer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.demoBtn, { borderColor: "#10B981" + "30", backgroundColor: "#10B981" + "10" }]} onPress={fillDemoProvider}>
+            <Ionicons name="briefcase-outline" size={15} color="#10B981" />
+            <Text style={[styles.demoBtnText, { color: "#10B981" }]}>Demo Provider</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.form}>
           <View style={styles.field}>
@@ -140,59 +160,43 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: 24 },
   backBtn: { width: 44, height: 44, justifyContent: "center", marginBottom: 16 },
-  header: { marginBottom: 32 },
+  header: { marginBottom: 28 },
   logoMark: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 60, height: 60, borderRadius: 18,
     backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
+    alignItems: "center", justifyContent: "center", marginBottom: 20,
   },
   title: { fontFamily: "Inter_700Bold", fontSize: 30, color: Colors.text, marginBottom: 8 },
   subtitle: { fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.textSecondary },
+  demoRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
   demoBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     backgroundColor: Colors.primary + "10",
     borderWidth: 1,
     borderColor: Colors.primary + "30",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    marginBottom: 28,
-    alignSelf: "flex-start",
   },
   demoBtnText: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.primary },
   form: { gap: 20 },
   field: { gap: 8 },
   label: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.text },
   inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    backgroundColor: Colors.surface,
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1.5, borderColor: Colors.border,
+    borderRadius: 12, paddingHorizontal: 14, backgroundColor: Colors.surface,
   },
   inputIcon: { marginRight: 10 },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    color: Colors.text,
-  },
+  input: { flex: 1, paddingVertical: 14, fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.text },
   eyeBtn: { padding: 4 },
   loginBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 17,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 8,
+    backgroundColor: Colors.primary, paddingVertical: 17, borderRadius: 14,
+    alignItems: "center", marginTop: 8,
   },
   loginBtnDisabled: { opacity: 0.7 },
   loginBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" },

@@ -10,6 +10,7 @@ import reviewsRouter from "./reviews.js";
 import notificationsRouter from "./notifications.js";
 import paymentsRouter from "./payments.js";
 import adminRouter from "./admin.js";
+import providerRouter from "./provider.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use("/reviews", reviewsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/payments", paymentsRouter);
 router.use("/admin", adminRouter);
+router.use("/provider", providerRouter);
 
 export default router;
