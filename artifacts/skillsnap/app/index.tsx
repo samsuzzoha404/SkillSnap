@@ -12,7 +12,7 @@ export default function Index() {
     if (!isLoading) {
       if (user) {
         if (user.role === "provider") {
-          router.replace("/(provider-tabs)");
+          router.replace("/(provider-tabs)/dashboard");
         } else {
           router.replace("/(tabs)");
         }
