@@ -361,7 +361,7 @@ export const providerProfiles: MockProviderProfile[] = [
 export const providerServices: MockProviderService[] = [
   { id: "svc_001", providerId: "prov_001", categoryId: "cat_electrical", basePrice: 120, priceType: "hourly", isActive: true },
   { id: "svc_002", providerId: "prov_002", categoryId: "cat_cleaning", basePrice: 280, priceType: "fixed", isActive: true },
-  { id: "svc_003", providerId: "prov_002", categoryId: "cat_cleaning", basePrice: 450, priceType: "fixed", isActive: true },
+  { id: "svc_003", providerId: "prov_002", categoryId: "cat_carpentry", basePrice: 200, priceType: "hourly", isActive: true },
   { id: "svc_004", providerId: "prov_003", categoryId: "cat_plumbing", basePrice: 100, priceType: "hourly", isActive: true },
   { id: "svc_005", providerId: "prov_004", categoryId: "cat_electrical", basePrice: 110, priceType: "hourly", isActive: true },
   { id: "svc_006", providerId: "prov_004", categoryId: "cat_plumbing", basePrice: 95, priceType: "hourly", isActive: true },
@@ -573,24 +573,6 @@ export const reviews: MockReview[] = [
     rating: 4,
     comment: "Good work on the wiring. Arrived on time and finished neatly. Minor issue with cable management but otherwise excellent.",
     createdAt: new Date(new Date(twoMonthsAgo).getTime() + 86400000).toISOString(),
-  },
-  {
-    id: "rev_004",
-    bookingId: "bkg_003",
-    consumerId: "usr_consumer_002",
-    providerId: "prov_001",
-    rating: 5,
-    comment: "Very thorough and detailed work. Will definitely book again.",
-    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-  {
-    id: "rev_005",
-    bookingId: "bkg_003",
-    consumerId: "usr_consumer_002",
-    providerId: "prov_003",
-    rating: 4,
-    comment: "Fast response and clean workmanship. Price was fair.",
-    createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
   },
 ];
 

@@ -66,12 +66,19 @@ export default function HomeScreen() {
 
   const firstName = user?.fullName?.split(" ")[0] || "there";
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning,";
+    if (hour < 17) return "Good afternoon,";
+    return "Good evening,";
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 8 }]}>
         <View>
-          <Text style={styles.greeting}>Good morning,</Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.name}>{firstName}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push("/notifications" as any)} style={styles.notifBtn}>

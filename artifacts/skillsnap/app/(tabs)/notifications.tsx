@@ -16,9 +16,16 @@ import { api } from "@/lib/api";
 
 const NOTIF_ICONS: Record<string, any> = {
   service_request: "document-text",
+  new_request: "document-text",
   booking_created: "calendar",
   booking_status: "refresh-circle",
+  booking_accepted: "checkmark-circle",
+  match_found: "flash",
   payment: "card",
+  payment_success: "card",
+  payment_received: "cash",
+  verification: "shield-checkmark",
+  review: "star",
 };
 
 function timeAgo(dateStr: string) {
