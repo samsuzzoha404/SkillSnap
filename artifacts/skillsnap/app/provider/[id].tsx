@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
 import { StarRating } from "@/components/StarRating";
@@ -28,6 +29,25 @@ export default function ProviderDetailScreen() {
     queryKey: ["provider", id],
     queryFn: () => api.get(`/providers/${id}`),
     enabled: !!id,
+  });
+
+  const { mutate: quickBook, isPending: isBooking } = useMutation({
+    mutationFn: () =>
+      api.post("/service-requests", {
+        categoryId: provider?.categories?.[0]?.id,
+        title: `Service request for ${provider?.businessName}`,
+        description: `Requesting service from ${provider?.businessName}.`,
+        address: "KLCC, Kuala Lumpur",
+        latitude: 3.1578,
+        longitude: 101.7123,
+        preferredDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+        preferredTime: "10:00",
+        urgency: "medium",
+      }),
+    onSuccess: (data) => {
+      router.push(`/request/matches?requestId=${data.id}` as any);
+    },
+    onError: (err: any) => Alert.alert("Error", err.message || "Could not create request"),
   });
 
   if (isLoading) {
@@ -177,12 +197,19 @@ export default function ProviderDetailScreen() {
 
       <View style={[styles.footer, { paddingBottom: botPad + 16 }]}>
         <TouchableOpacity
-          style={styles.bookBtn}
-          onPress={() => router.push("/request/create" as any)}
+          style={[styles.bookBtn, isBooking && { opacity: 0.7 }]}
+          onPress={() => quickBook()}
+          disabled={isBooking}
           activeOpacity={0.85}
         >
-          <Ionicons name="flash" size={20} color="#fff" />
-          <Text style={styles.bookBtnText}>Book This Provider</Text>
+          {isBooking ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Ionicons name="flash" size={20} color="#fff" />
+              <Text style={styles.bookBtnText}>Book This Provider</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>

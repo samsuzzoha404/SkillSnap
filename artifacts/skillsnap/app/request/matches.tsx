@@ -12,7 +12,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
 import { StarRating } from "@/components/StarRating";
@@ -22,7 +22,8 @@ export default function MatchesScreen() {
   const insets = useSafeAreaInsets();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [booking, setBooking] = useState(false);
+  const [bookingProviderId, setBookingProviderId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -41,9 +42,15 @@ export default function MatchesScreen() {
         scheduledAt: new Date(Date.now() + 86400000).toISOString(),
       }),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["matches", requestId] });
+      setBookingProviderId(null);
       router.replace(`/booking/${data.id}` as any);
     },
-    onError: (err: any) => Alert.alert("Error", err.message),
+    onError: (err: any) => {
+      setBookingProviderId(null);
+      Alert.alert("Error", err.message || "Booking failed. Please try again.");
+    },
   });
 
   const handleBook = (provider: any) => {
@@ -53,9 +60,9 @@ export default function MatchesScreen() {
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Confirm",
+          text: "Book Now",
           onPress: () => {
-            setBooking(true);
+            setBookingProviderId(provider.id);
             createBooking({ providerId: provider.id });
           },
         },
@@ -65,6 +72,9 @@ export default function MatchesScreen() {
 
   const renderMatch = ({ item, index }: { item: any; index: number }) => {
     const isTop = index === 0;
+    const isThisBooking = bookingProviderId === item.id;
+    const anyBooking = bookingProviderId !== null;
+
     return (
       <TouchableOpacity
         style={[styles.card, isTop && styles.cardTop, selectedProvider === item.id && styles.cardSelected]}
@@ -144,12 +154,12 @@ export default function MatchesScreen() {
             <Text style={styles.priceValue}>MYR {item.estimatedPrice?.toFixed(2)}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.bookBtn, booking && styles.bookBtnDisabled]}
+            style={[styles.bookBtn, anyBooking && styles.bookBtnDisabled]}
             onPress={() => handleBook(item)}
-            disabled={booking}
+            disabled={anyBooking}
             activeOpacity={0.85}
           >
-            {booking ? (
+            {isThisBooking ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
