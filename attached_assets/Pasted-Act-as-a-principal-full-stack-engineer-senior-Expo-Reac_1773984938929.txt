@@ -1,0 +1,481 @@
+Act as a principal full-stack engineer, senior Expo/React Native architect, senior TypeScript backend engineer, senior UX engineer, and production-minded app refactor specialist.
+
+You are working on an EXISTING project called:
+
+SkillSnap — AI-powered local service booking platform for Malaysia
+
+IMPORTANT CONTEXT:
+- This is an existing monorepo project
+- Consumer mobile app already exists
+- Provider-related screens/routes may partially exist
+- Backend API already exists
+- Current codebase has typecheck issues in api-server
+- Current app depends too much on DB/live API
+- I DO NOT want real authentication or real database right now
+- I want EVERYTHING to run in DEMO MODE
+- All important buttons and flows must work end-to-end in demo mode
+- The design must become more professional, modern, polished, and startup-quality
+- DO NOT build any admin dashboard
+- DO NOT rebuild from scratch unless absolutely necessary
+- DO NOT break existing working consumer app features
+- DO NOT leave placeholder buttons that do nothing
+
+YOUR JOB:
+Take the existing SkillSnap project and transform it into a fully demoable, production-style MVP in demo mode, with clean UX, working end-to-end flows, stable TypeScript, provider flow completion, and polished UI.
+
+==================================================
+CORE GOAL
+==================================================
+
+Complete and harden the EXISTING project so that:
+
+1. Root typecheck is green
+2. api-server type issues are fixed
+3. App can run fully without real DB
+4. App can run fully without real auth
+5. Consumer and Provider flows both work end-to-end in demo mode
+6. All important buttons do something meaningful
+7. Professional and modern design is applied consistently
+8. The app feels like a real product demo, not a half-wired prototype
+
+==================================================
+NON-NEGOTIABLE RULES
+==================================================
+
+- Use DEMO MODE only
+- Do not require real database
+- Do not require real authentication provider
+- Do not require external backend services to demonstrate the flows
+- Use feature flags / environment flags
+- Preserve working code where possible
+- Refactor only where necessary
+- Prefer extending existing architecture over replacing it
+- Do not build admin dashboard
+- Do not leave incomplete flows
+- Do not leave broken navigation paths
+- Do not create fake static screens disconnected from logic
+- Every key action should update app state and UI meaningfully
+- All buttons in critical flows must work
+
+==================================================
+PHASE 1 — STABILIZE
+==================================================
+
+First inspect the existing repository and fix all stability issues.
+
+Required work:
+- fix api-server typecheck errors
+- fix route param and query typing issues
+- normalize req.params / req.query values before use
+- eliminate string vs string[] type mismatches
+- make root workspace typecheck green
+- ensure builds/typechecks pass cleanly
+- add health check confidence
+
+Implement:
+1. Strong param/query normalization helpers
+2. Safer validation for route params and query values
+3. Consistent API response shapes
+4. Better error handling in api-server
+5. A reliable `/health` endpoint returning demo-mode readiness info
+
+Health endpoint should indicate:
+- server running
+- demo mode enabled
+- mock auth enabled
+- mock repository active
+- available demo users
+
+==================================================
+PHASE 2 — DB-LESS DEMO MODE
+==================================================
+
+This is extremely important.
+
+Implement a full demo mode using:
+
+USE_MOCK_DATA=true
+
+Required architecture:
+- repository abstraction
+- mock/in-memory repositories
+- JSON seed files or in-memory seed data
+- no real DB dependency for demo mode
+- clean switching between mock mode and future real mode
+
+Refactor the backend so critical routes work with mock data repositories.
+
+Implement:
+1. Repository interfaces for core domains
+2. Mock repository implementations
+3. Seeded demo data for:
+   - consumers
+   - providers
+   - categories
+   - service requests
+   - matches
+   - bookings
+   - reviews
+   - notifications
+   - provider earnings
+4. Demo mode services wired through feature flag
+
+Critical routes that must work in mock mode:
+- auth routes
+- categories
+- providers
+- provider profile
+- provider services/pricing
+- provider availability
+- provider inbox
+- bookings
+- booking status updates
+- payments
+- reviews
+- notifications
+- provider dashboard/earnings/history
+
+Do NOT just return 503 for DB-less mode.
+The full demo experience must remain usable and convincing.
+
+==================================================
+PHASE 3 — COMPLETE PROVIDER FLOW
+==================================================
+
+Inspect the current provider-side implementation and fully complete it.
+
+Required provider features:
+
+1. Provider profile
+- personal name
+- business name
+- photo/avatar
+- bio
+- experience
+- contact details
+
+2. Services / pricing
+- selectable service categories
+- base price
+- price type
+- min/max range if needed
+- enable/disable service offerings
+
+3. Availability
+- weekly schedule
+- working hours
+- unavailable toggle
+- blackout slots if practical
+
+4. Verification
+- verification status UI
+- statuses:
+  - pending
+  - approved
+  - rejected
+- in demo mode:
+  - some seeded providers approved
+  - some pending
+- providers with pending status must be blocked from receiving active booking assignments
+
+5. Inbox
+- new matched requests
+- request detail
+- accept / reject
+- urgency, date/time, location, estimated payout
+
+6. Active job lifecycle
+- accepted
+- en route
+- arrived
+- in progress
+- completed
+- cancelled
+- add notes/event timeline if practical
+
+7. Earnings / history
+- total earnings
+- pending earnings
+- booking-level earnings
+- completed job history
+- cancelled / rejected history
+
+8. Reviews
+- average rating
+- breakdown
+- customer comments
+- performance summary
+
+All of these must be properly wired in demo mode.
+No dead buttons.
+No fake tabs with empty screens unless meaningful empty states are shown.
+
+==================================================
+PHASE 4 — POLISH UX
+==================================================
+
+The design must be upgraded to feel premium, polished, and professional.
+
+Visual direction:
+- modern startup-grade marketplace product
+- premium but practical
+- clean spacing
+- refined typography
+- consistent color system
+- elegant cards
+- great status chips/badges
+- subtle shadows
+- polished forms
+- trust-building UI
+- distinct but consistent consumer vs provider identity
+- professional onboarding and navigation
+- strong loading/empty/error states
+
+Implement:
+1. Better error states
+2. Skeleton loaders
+3. Retry actions
+4. Consistent empty states
+5. Shared components / tokens
+
+Create or improve reusable UI building blocks such as:
+- AppButton
+- AppCard
+- AppInput
+- AppSectionHeader
+- StatusBadge / StatusChip
+- EmptyState
+- SkeletonBlock / SkeletonCard
+- ErrorState with retry
+- AppAvatar
+- StatCard
+- TimelineStep
+- BookingStatusTracker
+
+Improve both Consumer and Provider app experience:
+- cleaner screen hierarchy
+- better CTA placement
+- stronger spacing rhythm
+- polished states
+- less visual clutter
+- better consistency across screens
+
+Do not overuse flashy gradients or gimmicks.
+Focus on premium clarity.
+
+==================================================
+PHASE 5 — HARDEN END-TO-END
+==================================================
+
+Now ensure the entire demo flow works correctly.
+
+Required end-to-end verification:
+1. consumer request → match → provider accept → progress → payment → review
+2. pending provider blocked from receiving live booking assignment
+3. notifications update correctly
+4. provider earnings update correctly
+
+Implement and verify the following flow in demo mode:
+
+Consumer:
+- onboarding
+- login/signup with demo auth
+- browse categories
+- create service request
+- select category
+- add description
+- set date/time
+- choose location
+- submit request
+- see ranked provider matches
+- view provider details
+- confirm booking
+- pay in demo mode
+- track booking progress
+- receive notifications
+- leave review after completion
+
+Provider:
+- login/signup with demo auth
+- complete profile
+- manage services/pricing
+- manage schedule
+- see verification state
+- receive inbox request if approved
+- accept/reject
+- move booking through lifecycle
+- see notifications
+- see history
+- see earnings update
+- see review after completion
+
+All buttons in these flows must work.
+All screens must update meaningfully.
+All important actions must persist in mock state during the session.
+
+==================================================
+AUTHENTICATION — DEMO MODE ONLY
+==================================================
+
+Do NOT use real auth providers.
+
+Implement demo authentication that feels realistic:
+- email/password form UX
+- validation
+- session persistence
+- role-based access (consumer, provider)
+- mock token/session layer if needed
+- secure-feeling auth flow in code structure, even if mocked
+
+Seed demo accounts such as:
+- consumer demo user
+- approved provider demo user
+- pending provider demo user
+
+Add clear demo login shortcuts where helpful, but keep them visually professional.
+
+==================================================
+BACKEND / API REQUIREMENTS
+==================================================
+
+Even in demo mode, keep backend structure clean and realistic.
+
+Improve backend with:
+- route typing fixes
+- controller/service/repository separation where practical
+- DTO/schema validation
+- normalized API responses
+- demo repositories
+- mock payment service
+- mock notification service
+- booking lifecycle rules
+- provider verification guard logic
+- health endpoint
+- debug-friendly logs in development only
+
+Do not overengineer.
+Keep it maintainable and demo-ready.
+
+==================================================
+REAL-TIME / STATE SYNC
+==================================================
+
+If real websockets are already present, use them.
+If not, implement the simplest reliable demo-friendly sync strategy.
+
+Goal:
+- when provider accepts, consumer sees updated status
+- when provider progresses booking, consumer tracking updates
+- notifications update on both sides
+- payment confirmation updates the booking state
+- provider earnings reflect completed/paid bookings
+
+Use the cleanest practical approach for this existing codebase.
+A lightweight in-memory event bus or app-wide sync layer is acceptable in demo mode if implemented properly.
+
+==================================================
+PAYMENT — DEMO MODE
+==================================================
+
+Do not integrate real payment gateway now.
+But the payment flow must feel real and complete.
+
+Implement:
+- payment method selection
+- processing state
+- success/failure state
+- receipt / reference display
+- booking payment status update
+- provider earnings impact after completion rules
+
+Do not make payment button a fake no-op.
+It must trigger real state change in demo mode.
+
+==================================================
+DESIGN DETAILS
+==================================================
+
+The final design should feel:
+- premium
+- trustworthy
+- polished
+- modern
+- mobile-first
+- investor/demo ready
+
+Consumer app tone:
+- discovery
+- trust
+- convenience
+- clean service-booking experience
+
+Provider app tone:
+- business tool
+- efficiency
+- schedule + earnings control
+- professional operational interface
+
+Use high-quality spacing and hierarchy.
+Reduce visual noise.
+Make all major screens feel deliberate.
+
+==================================================
+DELIVERABLES
+==================================================
+
+By the end, I want the existing project upgraded so that it includes:
+
+- stable type-safe backend
+- green root typecheck
+- health endpoint
+- demo mode feature flag
+- mock repositories / seeded JSON or in-memory data
+- working consumer flow
+- working provider flow
+- provider verification logic
+- provider earnings/history/reviews
+- polished UI components
+- better error/loading/empty states
+- end-to-end demoable lifecycle
+- updated README with demo mode instructions
+
+==================================================
+README / DOCS
+==================================================
+
+Update documentation with:
+- how to run the project
+- how to enable demo mode
+- demo credentials
+- how consumer flow works
+- how provider flow works
+- known assumptions
+- structure overview
+
+Keep docs concise and practical.
+
+==================================================
+DEFINITION OF DONE
+==================================================
+
+This task is complete only when:
+
+1. root typecheck passes
+2. api-server type issues are fixed
+3. `/health` clearly reports demo mode readiness
+4. app runs without real DB
+5. app runs without real auth
+6. consumer flow is fully demoable
+7. provider flow is fully demoable
+8. pending provider is blocked correctly
+9. notifications update correctly
+10. provider earnings update correctly
+11. payment demo flow works
+12. review flow works after completion
+13. important buttons all work
+14. UI is visibly more professional and polished
+15. no admin dashboard is added
+
+Now inspect the existing project carefully, preserve what already works, and implement all of the above in the current codebase.
+Do not stop after planning.
+Actually build it end-to-end in demo mode.

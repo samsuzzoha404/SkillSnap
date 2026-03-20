@@ -43,7 +43,7 @@ export default function PaymentScreen() {
 
   const { mutate: pay } = useMutation({
     mutationFn: () =>
-      api.post("/payments/initiate", { bookingId, amount }),
+      api.post(`/payments/${bookingId}/pay`, { amount, method: selectedMethod }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["booking", bookingId] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
