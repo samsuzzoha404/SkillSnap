@@ -17,19 +17,20 @@ import { api } from "@/lib/api";
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
 const P_LIGHT = "#ECFDF5";
+const P_MINT = "#A7F3D0";
 
 function MonthBar({ month, amount, maxAmount }: { month: string; amount: number; maxAmount: number }) {
   const pct = maxAmount > 0 ? amount / maxAmount : 0;
   const label = new Date(month + "-01").toLocaleDateString("en-MY", { month: "short" });
   return (
-    <View style={{ alignItems: "center", flex: 1, gap: 6 }}>
-      <Text style={{ fontFamily: "Inter_500Medium", fontSize: 11, color: Colors.textSecondary }}>
-        MYR {amount.toFixed(0)}
+    <View style={{ alignItems: "center", flex: 1, gap: 4 }}>
+      <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 10, color: Colors.textSecondary }}>
+        {amount > 0 ? amount.toFixed(0) : ""}
       </Text>
-      <View style={{ height: 80, width: 24, backgroundColor: Colors.surface, borderRadius: 6, justifyContent: "flex-end", overflow: "hidden" }}>
-        <View style={{ height: `${Math.round(pct * 100)}%`, backgroundColor: P_ACCENT, borderRadius: 6 }} />
+      <View style={{ height: 72, width: 22, backgroundColor: "#E2E8F0", borderRadius: 6, justifyContent: "flex-end", overflow: "hidden" }}>
+        <View style={{ height: `${Math.round(pct * 100)}%`, backgroundColor: pct > 0.7 ? P_ACCENT : pct > 0.4 ? "#34D399" : "#6EE7B7", borderRadius: 6 }} />
       </View>
-      <Text style={{ fontFamily: "Inter_400Regular", fontSize: 11, color: Colors.textTertiary }}>{label}</Text>
+      <Text style={{ fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textTertiary }}>{label}</Text>
     </View>
   );
 }
@@ -54,7 +55,7 @@ export default function ProviderEarnings() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F0FDF4" }}>
         <ActivityIndicator size="large" color={P_ACCENT} />
       </View>
     );
@@ -71,43 +72,52 @@ export default function ProviderEarnings() {
   const avgPerJob = totalJobs > 0 ? totalEarnings / totalJobs : 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <View style={[styles.header, { paddingTop: topPad + 8 }]}>
-        <Text style={styles.headerTitle}>Earnings</Text>
-      </View>
-
+    <View style={{ flex: 1, backgroundColor: "#F0FDF4" }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: botPad + 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={P_ACCENT} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={P_MINT} />}
       >
-        <View style={styles.heroCard}>
+        <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
           <Text style={styles.heroLabel}>Total Earned</Text>
           <Text style={styles.heroAmount}>MYR {totalEarnings.toFixed(2)}</Text>
-          <Text style={styles.heroSub}>Across {totalJobs} completed {totalJobs === 1 ? "job" : "jobs"}</Text>
-          <View style={styles.heroStats}>
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>MYR {paidEarnings.toFixed(2)}</Text>
-              <Text style={styles.heroStatLabel}>Paid Out</Text>
+          <Text style={styles.heroSub}>From {totalJobs} completed {totalJobs === 1 ? "job" : "jobs"}</Text>
+
+          <View style={styles.heroPills}>
+            <View style={styles.heroPill}>
+              <Feather name="check-circle" size={14} color={P_MINT} />
+              <View>
+                <Text style={styles.heroPillValue}>MYR {paidEarnings.toFixed(0)}</Text>
+                <Text style={styles.heroPillLabel}>Paid Out</Text>
+              </View>
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>MYR {pendingEarnings.toFixed(2)}</Text>
-              <Text style={styles.heroStatLabel}>Pending</Text>
+            <View style={styles.heroPillDivider} />
+            <View style={styles.heroPill}>
+              <Feather name="clock" size={14} color={P_MINT} />
+              <View>
+                <Text style={styles.heroPillValue}>MYR {pendingEarnings.toFixed(0)}</Text>
+                <Text style={styles.heroPillLabel}>Pending</Text>
+              </View>
             </View>
-            <View style={styles.heroStatDivider} />
-            <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>MYR {avgPerJob.toFixed(0)}</Text>
-              <Text style={styles.heroStatLabel}>Avg/Job</Text>
+            <View style={styles.heroPillDivider} />
+            <View style={styles.heroPill}>
+              <Feather name="trending-up" size={14} color={P_MINT} />
+              <View>
+                <Text style={styles.heroPillValue}>MYR {avgPerJob.toFixed(0)}</Text>
+                <Text style={styles.heroPillLabel}>Avg/Job</Text>
+              </View>
             </View>
           </View>
         </View>
 
         {monthEntries.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Monthly Breakdown</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>Monthly Earnings</Text>
+            </View>
             <View style={styles.chartCard}>
-              <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end", paddingHorizontal: 4 }}>
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "flex-end", paddingHorizontal: 4 }}>
                 {monthEntries.map(([month, amount]) => (
                   <MonthBar key={month} month={month} amount={amount as number} maxAmount={maxAmount} />
                 ))}
@@ -117,11 +127,14 @@ export default function ProviderEarnings() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Summary</Text>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionDot} />
+            <Text style={styles.sectionTitle}>Summary</Text>
+          </View>
           <View style={styles.summaryCard}>
             {[
               { icon: "check-circle", label: "Completed Jobs", value: totalJobs.toString(), color: P_ACCENT },
-              { icon: "dollar-sign", label: "Average Per Job", value: `MYR ${avgPerJob.toFixed(2)}`, color: Colors.primary },
+              { icon: "dollar-sign", label: "Average Per Job", value: `MYR ${avgPerJob.toFixed(2)}`, color: "#2563EB" },
               { icon: "clock", label: "Pending Payment", value: `MYR ${pendingEarnings.toFixed(2)}`, color: "#D97706" },
               { icon: "trending-up", label: "Paid Earnings", value: `MYR ${paidEarnings.toFixed(2)}`, color: "#16A34A" },
             ].map((item, i, arr) => (
@@ -131,7 +144,7 @@ export default function ProviderEarnings() {
                     <Feather name={item.icon as any} size={18} color={item.color} />
                   </View>
                   <Text style={styles.summaryLabel}>{item.label}</Text>
-                  <Text style={styles.summaryValue}>{item.value}</Text>
+                  <Text style={[styles.summaryValue, { color: item.color }]}>{item.value}</Text>
                 </View>
                 {i < arr.length - 1 && <View style={styles.divider} />}
               </View>
@@ -141,27 +154,32 @@ export default function ProviderEarnings() {
 
         {earnings?.recentBookings?.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Earnings</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            </View>
             {earnings.recentBookings.map((b: any) => (
-              <View key={b.id} style={styles.earningRow}>
-                <View style={styles.earningLeft}>
-                  <View style={[styles.earningIcon, { backgroundColor: b.paymentStatus === "paid" ? "#DCFCE7" : "#FEF3C7" }]}>
-                    <Feather name="dollar-sign" size={16} color={b.paymentStatus === "paid" ? "#16A34A" : "#D97706"} />
-                  </View>
-                  <View>
-                    <Text style={styles.earningDate}>
-                      {b.completedAt
-                        ? new Date(b.completedAt).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
-                        : "—"}
+              <View key={b.id} style={styles.txRow}>
+                <View style={[styles.txIcon, { backgroundColor: b.paymentStatus === "paid" ? P_LIGHT : "#FEF3C7" }]}>
+                  <Feather
+                    name={b.paymentStatus === "paid" ? "check-circle" : "clock"}
+                    size={16}
+                    color={b.paymentStatus === "paid" ? P_ACCENT : "#D97706"}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.txDate}>
+                    {b.completedAt
+                      ? new Date(b.completedAt).toLocaleDateString("en-MY", { month: "short", day: "numeric", year: "numeric" })
+                      : "—"}
+                  </Text>
+                  <View style={[styles.txBadge, { backgroundColor: b.paymentStatus === "paid" ? P_LIGHT : "#FEF3C7" }]}>
+                    <Text style={[styles.txBadgeText, { color: b.paymentStatus === "paid" ? P_ACCENT : "#D97706" }]}>
+                      {b.paymentStatus === "paid" ? "Paid" : "Pending"}
                     </Text>
-                    <View style={[styles.payBadge, { backgroundColor: b.paymentStatus === "paid" ? "#DCFCE7" : "#FEF3C7" }]}>
-                      <Text style={[styles.payBadgeText, { color: b.paymentStatus === "paid" ? "#16A34A" : "#D97706" }]}>
-                        {b.paymentStatus === "paid" ? "Paid" : "Pending"}
-                      </Text>
-                    </View>
                   </View>
                 </View>
-                <Text style={styles.earningAmount}>MYR {(b.finalPrice || 0).toFixed(2)}</Text>
+                <Text style={styles.txAmount}>MYR {(b.finalPrice || 0).toFixed(2)}</Text>
               </View>
             ))}
           </View>
@@ -169,7 +187,9 @@ export default function ProviderEarnings() {
 
         {totalJobs === 0 && (
           <View style={styles.empty}>
-            <Feather name="dollar-sign" size={52} color={Colors.textTertiary} />
+            <View style={styles.emptyIcon}>
+              <Feather name="trending-up" size={32} color={P_ACCENT} />
+            </View>
             <Text style={styles.emptyTitle}>No earnings yet</Text>
             <Text style={styles.emptyText}>Complete your first job to start tracking earnings here.</Text>
           </View>
@@ -180,62 +200,60 @@ export default function ProviderEarnings() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: Colors.background },
-  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.text },
-  heroCard: {
+  hero: {
     backgroundColor: P_COLOR,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     marginBottom: 24,
   },
-  heroLabel: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 8 },
+  heroLabel: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.65)", marginBottom: 6 },
   heroAmount: { fontFamily: "Inter_700Bold", fontSize: 38, color: "#fff", marginBottom: 4 },
-  heroSub: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 20 },
-  heroStats: { flexDirection: "row", alignItems: "center" },
-  heroStat: { flex: 1, alignItems: "center" },
-  heroStatValue: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#fff", marginBottom: 2 },
-  heroStatLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.6)" },
-  heroStatDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.2)" },
+  heroSub: { fontFamily: "Inter_400Regular", fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 22 },
+  heroPills: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.18)",
+    borderRadius: 16, padding: 14, alignItems: "center",
+  },
+  heroPill: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  heroPillDivider: { width: 1, height: 32, backgroundColor: "rgba(255,255,255,0.15)", marginHorizontal: 4 },
+  heroPillValue: { fontFamily: "Inter_700Bold", fontSize: 14, color: "#fff" },
+  heroPillLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: "rgba(255,255,255,0.6)" },
   section: { paddingHorizontal: 20, marginBottom: 24 },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 17, color: Colors.text, marginBottom: 12 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: P_ACCENT },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.text },
   chartCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: "#fff",
+    borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: "#E2E8F0",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   summaryCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 16,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: "#fff",
+    borderRadius: 16, overflow: "hidden",
+    borderWidth: 1, borderColor: "#E2E8F0",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   summaryRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
-  summaryIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  summaryIcon: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", marginRight: 12 },
   summaryLabel: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, flex: 1 },
-  summaryValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text },
-  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 64 },
-  earningRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  summaryValue: { fontFamily: "Inter_700Bold", fontSize: 14 },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginLeft: 66 },
+  txRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14, padding: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: "#E2E8F0",
   },
-  earningLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  earningIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  earningDate: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.text, marginBottom: 4 },
-  payBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, alignSelf: "flex-start" },
-  payBadgeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
-  earningAmount: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.text },
-  empty: { alignItems: "center", paddingTop: 60, paddingHorizontal: 40 },
-  emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginTop: 16, marginBottom: 8 },
+  txIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  txDate: { fontFamily: "Inter_500Medium", fontSize: 13, color: Colors.text, marginBottom: 4 },
+  txBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, alignSelf: "flex-start" },
+  txBadgeText: { fontFamily: "Inter_500Medium", fontSize: 10 },
+  txAmount: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.text },
+  empty: { alignItems: "center", paddingTop: 40, paddingHorizontal: 40 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: P_LIGHT, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  emptyTitle: { fontFamily: "Inter_600SemiBold", fontSize: 18, color: Colors.text, marginBottom: 8 },
   emptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 22 },
 });

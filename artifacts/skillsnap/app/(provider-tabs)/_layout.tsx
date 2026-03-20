@@ -1,42 +1,40 @@
 import { Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
-import { Colors } from "@/constants/colors";
-import { BlurView } from "expo-blur";
+import { Platform, View } from "react-native";
 
-const PROVIDER_PRIMARY = "#0D5C3A";
-const PROVIDER_ACCENT = "#10B981";
+const P_DARK = "#0A3D27";
+const P_COLOR = "#0D5C3A";
+const P_ACCENT = "#10B981";
+const P_INACTIVE = "rgba(255,255,255,0.45)";
 
-export { PROVIDER_PRIMARY, PROVIDER_ACCENT };
+export { P_COLOR, P_ACCENT, P_DARK };
 
 export default function ProviderTabLayout() {
-  const isIOS = Platform.OS === "ios";
+  const isWeb = Platform.OS === "web";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: PROVIDER_ACCENT,
-        tabBarInactiveTintColor: Colors.textTertiary,
+        tabBarActiveTintColor: "#A7F3D0",
+        tabBarInactiveTintColor: P_INACTIVE,
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : "#fff",
+          backgroundColor: P_COLOR,
           borderTopWidth: 1,
-          borderTopColor: Colors.border,
+          borderTopColor: P_DARK,
           elevation: 0,
-          ...(Platform.OS === "web" ? { height: 84 } : {}),
+          shadowOpacity: 0,
+          ...(isWeb ? { height: 84 } : {}),
         },
         tabBarLabelStyle: {
           fontFamily: "Inter_500Medium",
           fontSize: 11,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: "#fff" }]} />
-          ),
+        tabBarBackground: () => (
+          <View style={{ flex: 1, backgroundColor: P_COLOR }} />
+        ),
       }}
     >
       <Tabs.Screen
@@ -64,7 +62,7 @@ export default function ProviderTabLayout() {
         name="earnings"
         options={{
           title: "Earnings",
-          tabBarIcon: ({ color }) => <Feather name="dollar-sign" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Feather name="trending-up" size={22} color={color} />,
         }}
       />
       <Tabs.Screen

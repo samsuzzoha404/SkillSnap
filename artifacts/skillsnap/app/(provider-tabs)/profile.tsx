@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
 const P_LIGHT = "#ECFDF5";
+const P_MINT = "#A7F3D0";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -67,8 +68,8 @@ export default function ProviderProfileScreen() {
       {
         text: "Sign Out",
         style: "destructive",
-        onPress: () => {
-          logout();
+        onPress: async () => {
+          await logout();
           router.replace("/auth/login");
         },
       },
@@ -83,12 +84,13 @@ export default function ProviderProfileScreen() {
     .slice(0, 2) || "P";
 
   const verificationStatus = profile?.verificationStatus || "pending";
-  const verifyColor = verificationStatus === "verified" ? "#16A34A" : verificationStatus === "pending" ? "#D97706" : "#DC2626";
-  const verifyBg = verificationStatus === "verified" ? "#DCFCE7" : verificationStatus === "pending" ? "#FEF3C7" : "#FEE2E2";
+  const verifyColor = verificationStatus === "verified" ? P_ACCENT : verificationStatus === "pending" ? "#D97706" : "#DC2626";
+  const verifyBg = verificationStatus === "verified" ? P_LIGHT : verificationStatus === "pending" ? "#FEF3C7" : "#FEE2E2";
+  const verifyBorder = verificationStatus === "verified" ? "#6EE7B7" : verificationStatus === "pending" ? "#FDE68A" : "#FECACA";
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F0FDF4" }}>
         <ActivityIndicator size="large" color={P_ACCENT} />
       </View>
     );
@@ -96,54 +98,63 @@ export default function ProviderProfileScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.background }}
+      style={{ flex: 1, backgroundColor: "#F0FDF4" }}
       contentContainerStyle={{ paddingBottom: botPad + 100 }}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={P_ACCENT} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={P_MINT} />}
     >
-      <View style={[styles.header, { paddingTop: topPad + 8 }]}>
-        <Text style={styles.headerTitle}>My Profile</Text>
-      </View>
-
-      <View style={styles.profileCard}>
-        <View style={[styles.avatar, { backgroundColor: P_COLOR }]}>
+      <View style={[styles.hero, { paddingTop: topPad + 12 }]}>
+        <View style={styles.avatarWrap}>
           <Text style={styles.avatarText}>{initials}</Text>
+          <View style={[styles.verifyDot, { backgroundColor: verifyColor }]} />
         </View>
-        <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{user?.fullName || profile?.fullName || "Provider"}</Text>
-          <Text style={styles.profileEmail}>{user?.email || profile?.email}</Text>
-          <View style={[styles.verifyBadge, { backgroundColor: verifyBg }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heroName}>{user?.fullName || profile?.fullName || "Provider"}</Text>
+          {profile?.businessName && (
+            <Text style={styles.heroBiz}>{profile.businessName}</Text>
+          )}
+          <Text style={styles.heroEmail}>{user?.email || profile?.email}</Text>
+          <View style={[styles.verifyBadge, { backgroundColor: verifyBg, borderColor: verifyBorder }]}>
             <Feather
-              name={verificationStatus === "verified" ? "check-circle" : "clock"}
-              size={12}
+              name={verificationStatus === "verified" ? "shield" : "clock"}
+              size={11}
               color={verifyColor}
             />
-            <Text style={[styles.verifyText, { color: verifyColor }]}>
-              {verificationStatus === "verified" ? "Verified Provider" : verificationStatus === "pending" ? "Pending Verification" : "Verification Rejected"}
+            <Text style={[styles.verifyBadgeText, { color: verifyColor }]}>
+              {verificationStatus === "verified"
+                ? "Verified Provider"
+                : verificationStatus === "pending"
+                ? "Pending Verification"
+                : "Verification Rejected"}
             </Text>
           </View>
         </View>
       </View>
 
       {profile && (
-        <>
-          <View style={styles.statsRow}>
-            {[
-              { label: "Avg Rating", value: `${(profile.avgRating || 0).toFixed(1)}★`, icon: "star" },
-              { label: "Total Jobs", value: profile.totalJobs || 0, icon: "briefcase" },
-              { label: "Completion", value: `${(profile.completionRate || 0).toFixed(0)}%`, icon: "check-circle" },
-            ].map((stat) => (
-              <View key={stat.label} style={styles.statCard}>
-                <Feather name={stat.icon as any} size={20} color={P_ACCENT} />
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
+        <View style={styles.statsRow}>
+          {[
+            { label: "Rating", value: `${(profile.avgRating || 0).toFixed(1)}★`, icon: "star", color: "#F59E0B" },
+            { label: "Total Jobs", value: profile.totalJobs || 0, icon: "briefcase", color: P_ACCENT },
+            { label: "Completion", value: `${(profile.completionRate || 0).toFixed(0)}%`, icon: "check-circle", color: "#2563EB" },
+          ].map((stat) => (
+            <View key={stat.label} style={styles.statCard}>
+              <Feather name={stat.icon as any} size={18} color={stat.color} />
+              <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
+      {profile && (
+        <>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Business Info</Text>
-            <View style={styles.infoCard}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionDot} />
+              <Text style={styles.sectionTitle}>Business Info</Text>
+            </View>
+            <View style={styles.card}>
               {[
                 { icon: "briefcase", label: "Business Name", value: profile.businessName || "—" },
                 { icon: "info", label: "Bio", value: profile.bio || "—" },
@@ -154,7 +165,7 @@ export default function ProviderProfileScreen() {
                 <View key={row.label}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoIcon}>
-                      <Feather name={row.icon as any} size={16} color={P_ACCENT} />
+                      <Feather name={row.icon as any} size={15} color={P_ACCENT} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.infoLabel}>{row.label}</Text>
@@ -169,13 +180,16 @@ export default function ProviderProfileScreen() {
 
           {profile.services?.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Services Offered</Text>
-              <View style={styles.servicesCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.sectionTitle}>Services Offered</Text>
+              </View>
+              <View style={styles.card}>
                 {profile.services.map((svc: any, i: number, arr: any[]) => (
                   <View key={svc.id}>
                     <View style={styles.serviceRow}>
-                      <View style={[styles.infoIcon, { backgroundColor: P_LIGHT }]}>
-                        <Feather name="tag" size={16} color={P_ACCENT} />
+                      <View style={styles.infoIcon}>
+                        <Feather name="tag" size={15} color={P_ACCENT} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.serviceName}>{svc.category?.name || "Service"}</Text>
@@ -183,7 +197,7 @@ export default function ProviderProfileScreen() {
                           MYR {svc.basePrice}/{svc.priceType === "hourly" ? "hr" : "job"}
                         </Text>
                       </View>
-                      <View style={[styles.activeBadge, { backgroundColor: svc.isActive ? P_LIGHT : Colors.surface }]}>
+                      <View style={[styles.activeBadge, { backgroundColor: svc.isActive ? P_LIGHT : "#F1F5F9", borderColor: svc.isActive ? "#6EE7B7" : "#E2E8F0" }]}>
                         <Text style={[styles.activeBadgeText, { color: svc.isActive ? P_ACCENT : Colors.textTertiary }]}>
                           {svc.isActive ? "Active" : "Off"}
                         </Text>
@@ -198,14 +212,19 @@ export default function ProviderProfileScreen() {
 
           {profile.availability?.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Weekly Schedule</Text>
-              <View style={styles.scheduleCard}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.sectionTitle}>Weekly Schedule</Text>
+              </View>
+              <View style={styles.card}>
                 {profile.availability.map((slot: any, i: number, arr: any[]) => (
                   <View key={slot.id}>
                     <View style={styles.scheduleRow}>
-                      <Text style={[styles.dayName, !slot.isAvailable && { color: Colors.textTertiary }]}>
-                        {DAY_NAMES[slot.dayOfWeek] || `Day ${slot.dayOfWeek}`}
-                      </Text>
+                      <View style={[styles.dayBadge, { backgroundColor: slot.isAvailable ? P_LIGHT : "#F1F5F9" }]}>
+                        <Text style={[styles.dayName, { color: slot.isAvailable ? P_ACCENT : Colors.textTertiary }]}>
+                          {DAY_NAMES[slot.dayOfWeek] || `D${slot.dayOfWeek}`}
+                        </Text>
+                      </View>
                       {slot.isAvailable ? (
                         <Text style={styles.dayHours}>{slot.startTime} – {slot.endTime}</Text>
                       ) : (
@@ -214,7 +233,7 @@ export default function ProviderProfileScreen() {
                       <Switch
                         value={slot.isAvailable}
                         onValueChange={() => handleToggleDay(slot.dayOfWeek, slot.isAvailable)}
-                        trackColor={{ false: Colors.border, true: P_ACCENT }}
+                        trackColor={{ false: "#E2E8F0", true: P_ACCENT }}
                         thumbColor="#fff"
                       />
                     </View>
@@ -229,14 +248,14 @@ export default function ProviderProfileScreen() {
 
       <View style={styles.section}>
         <TouchableOpacity style={styles.editBtn} onPress={() => router.push("/provider-setup" as any)} activeOpacity={0.8}>
-          <Feather name="edit-2" size={18} color={P_ACCENT} />
-          <Text style={styles.editBtnText}>Edit Profile</Text>
+          <Feather name="edit-2" size={17} color="#fff" />
+          <Text style={styles.editBtnText}>Edit Profile & Services</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
-          <Feather name="log-out" size={18} color={Colors.error} />
+          <Feather name="log-out" size={17} color={Colors.error} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -247,68 +266,83 @@ export default function ProviderProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingBottom: 12, backgroundColor: Colors.background },
-  headerTitle: { fontFamily: "Inter_700Bold", fontSize: 24, color: Colors.text },
-  profileCard: {
+  hero: {
+    backgroundColor: P_COLOR,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    backgroundColor: Colors.card,
-    marginHorizontal: 16,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    marginBottom: 20,
   },
-  avatar: {
-    width: 64, height: 64, borderRadius: 32,
+  avatarWrap: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center", justifyContent: "center",
+    position: "relative",
   },
-  avatarText: { fontFamily: "Inter_700Bold", fontSize: 24, color: "#fff" },
-  profileInfo: { flex: 1 },
-  profileName: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text, marginBottom: 2 },
-  profileEmail: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, marginBottom: 8 },
+  avatarText: { fontFamily: "Inter_700Bold", fontSize: 26, color: "#fff" },
+  verifyDot: {
+    position: "absolute", bottom: 2, right: 2,
+    width: 14, height: 14, borderRadius: 7,
+    borderWidth: 2, borderColor: P_COLOR,
+  },
+  heroName: { fontFamily: "Inter_700Bold", fontSize: 18, color: "#fff", marginBottom: 1 },
+  heroEmail: { fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 8 },
+  heroBiz: { fontFamily: "Inter_500Medium", fontSize: 14, color: "rgba(255,255,255,0.8)", marginBottom: 2 },
   verifyBadge: {
     flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, alignSelf: "flex-start",
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, alignSelf: "flex-start",
+    borderWidth: 1,
   },
-  verifyText: { fontFamily: "Inter_500Medium", fontSize: 11 },
-  statsRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginBottom: 24 },
+  verifyBadgeText: { fontFamily: "Inter_500Medium", fontSize: 11 },
+  statsRow: {
+    flexDirection: "row", gap: 10, paddingHorizontal: 20, marginBottom: 24,
+  },
   statCard: {
-    flex: 1, backgroundColor: Colors.card, borderRadius: 14, padding: 16,
-    alignItems: "center", gap: 6, borderWidth: 1, borderColor: Colors.border,
+    flex: 1, backgroundColor: "#fff", borderRadius: 14, padding: 14,
+    alignItems: "center", gap: 5,
+    borderWidth: 1, borderColor: "#E2E8F0",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  statValue: { fontFamily: "Inter_700Bold", fontSize: 18, color: Colors.text },
+  statValue: { fontFamily: "Inter_700Bold", fontSize: 17 },
   statLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: Colors.textSecondary, textAlign: "center" },
-  section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: Colors.text, marginBottom: 12 },
-  infoCard: { backgroundColor: Colors.card, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  section: { paddingHorizontal: 20, marginBottom: 20 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: P_ACCENT },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 16, color: Colors.text },
+  card: {
+    backgroundColor: "#fff", borderRadius: 16, overflow: "hidden",
+    borderWidth: 1, borderColor: "#E2E8F0",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
-  infoIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#ECFDF5", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  infoIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: P_LIGHT, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   infoLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary },
   infoValue: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.text, marginTop: 2 },
-  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 64 },
-  servicesCard: { backgroundColor: Colors.card, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
+  divider: { height: 1, backgroundColor: "#F1F5F9", marginLeft: 62 },
   serviceRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
   serviceName: { fontFamily: "Inter_500Medium", fontSize: 14, color: Colors.text },
   servicePrice: { fontFamily: "Inter_400Regular", fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  activeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  activeBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
   activeBadgeText: { fontFamily: "Inter_500Medium", fontSize: 11 },
-  scheduleCard: { backgroundColor: Colors.card, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: Colors.border },
-  scheduleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16, gap: 12 },
-  dayName: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: Colors.text, width: 36 },
+  scheduleRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, gap: 12 },
+  dayBadge: { width: 40, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  dayName: { fontFamily: "Inter_700Bold", fontSize: 12 },
   dayHours: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textSecondary, flex: 1 },
   dayOff: { fontFamily: "Inter_400Regular", fontSize: 13, color: Colors.textTertiary, flex: 1 },
   editBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: "#ECFDF5", borderWidth: 1.5, borderColor: "#10B981" + "50",
-    paddingVertical: 16, borderRadius: 14,
+    backgroundColor: P_ACCENT, paddingVertical: 16, borderRadius: 14,
+    shadowColor: P_ACCENT, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
-  editBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#10B981" },
+  editBtnText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: "#fff" },
   logoutBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-    backgroundColor: Colors.error + "10", borderWidth: 1, borderColor: Colors.error + "30",
+    backgroundColor: Colors.error + "10", borderWidth: 1.5, borderColor: Colors.error + "30",
     paddingVertical: 16, borderRadius: 14,
   },
   logoutText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: Colors.error },
