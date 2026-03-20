@@ -42,7 +42,12 @@ export default function ProfileScreen() {
     ["requested", "accepted", "in_progress"].includes(b.status)
   ).length;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (Platform.OS === "web") {
+      await logout();
+      router.replace("/auth/login" as any);
+      return;
+    }
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -50,7 +55,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
-          router.replace("/auth/login");
+          router.replace("/auth/login" as any);
         },
       },
     ]);
