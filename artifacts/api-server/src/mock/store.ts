@@ -69,10 +69,10 @@ export interface MockServiceRequest {
   address: string;
   latitude: number | null;
   longitude: number | null;
-  urgency: "low" | "medium" | "high" | "urgent";
+  urgency: "low" | "medium" | "high" | "emergency";
   preferredDate: string;
   preferredTime: string;
-  status: "open" | "matched" | "booked" | "completed" | "cancelled";
+  status: "pending" | "matched" | "booked" | "completed" | "cancelled";
   budget: number | null;
   createdAt: string;
 }
@@ -425,7 +425,7 @@ export const serviceRequests: MockServiceRequest[] = [
     urgency: "medium",
     preferredDate: nextWeek.slice(0, 10),
     preferredTime: "09:00",
-    status: "open",
+    status: "pending",
     budget: 450,
     createdAt: new Date(Date.now() - 1 * 86400000).toISOString(),
   },
@@ -438,7 +438,7 @@ export const serviceRequests: MockServiceRequest[] = [
     address: "No 22, Jalan Kerinchi, Bangsar South, Kuala Lumpur",
     latitude: 3.1128,
     longitude: 101.6742,
-    urgency: "urgent",
+    urgency: "emergency",
     preferredDate: yesterday.slice(0, 10),
     preferredTime: "14:00",
     status: "completed",

@@ -353,7 +353,7 @@ router.post("/api/service-requests", requireAuth as any, (req, res) => {
     urgency: urgency || "medium",
     preferredDate: preferredDate || new Date().toISOString().slice(0, 10),
     preferredTime: preferredTime || "09:00",
-    status: "open" as const,
+    status: "pending" as const,
     budget: budget ? Number(budget) : null,
     createdAt: new Date().toISOString(),
   };
@@ -366,7 +366,7 @@ router.get("/api/service-requests", requireAuth as any, (req, res) => {
   const auth = getAuth(req);
   if (!auth) return res.status(401).json({ error: "AuthError", message: "Authentication required" });
   const userRequests = serviceRequests.filter(r => r.consumerId === auth.userId);
-  res.json(userRequests.map(r => ({
+  return res.json(userRequests.map(r => ({
     ...r,
     category: categories.find(c => c.id === r.categoryId),
   })));
@@ -429,13 +429,13 @@ router.get("/api/bookings", requireAuth as any, (req, res) => {
     userBookings = bookings.filter(b => b.consumerId === auth.userId);
   }
 
-  res.json(userBookings.map(b => getBookingWithDetails(b)));
+  return res.json(userBookings.map(b => getBookingWithDetails(b)));
 });
 
 router.get("/api/bookings/:id", requireAuth as any, (req, res) => {
   const booking = bookings.find(b => b.id === req.params.id);
   if (!booking) return res.status(404).json({ error: "NotFound", message: "Booking not found" });
-  res.json(getBookingWithDetails(booking));
+  return res.json(getBookingWithDetails(booking));
 });
 
 router.patch("/api/bookings/:id/status", requireAuth as any, (req, res) => {
@@ -578,7 +578,7 @@ router.get("/api/notifications", requireAuth as any, (req, res) => {
   const userNotifs = notifications
     .filter(n => n.userId === auth.userId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  res.json(userNotifs);
+  return res.json(userNotifs);
 });
 
 router.patch("/api/notifications/:id/read", requireAuth as any, (req, res) => {
@@ -591,7 +591,7 @@ router.patch("/api/notifications/read-all", requireAuth as any, (req, res) => {
   const auth = getAuth(req);
   if (!auth) return res.status(401).json({ error: "AuthError", message: "Authentication required" });
   notifications.filter(n => n.userId === auth.userId).forEach(n => { n.isRead = true; });
-  res.json({ success: true });
+  return res.json({ success: true });
 });
 
 router.get("/api/provider/me", requireAuth as any, (req, res) => {

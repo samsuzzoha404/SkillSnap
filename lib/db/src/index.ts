@@ -1,16 +1,64 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-import * as schema from "./schema";
+export { collections, getMongoClient, getMongoDb, getCollection } from "./mongo";
 
-const { Pool } = pg;
+// DAO exports (MongoDB-based) - export functions only to avoid type-name collisions with schema exports
+export {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  countUsers,
+} from "./dao/usersDao";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+export { findCategoryById, listActiveCategories } from "./dao/categoriesDao";
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+export {
+  findProviderProfileByUserId,
+  findProviderProfileById,
+  createProviderProfile,
+  updateProviderProfile,
+  listVerifiedProviderProfilesWithUserSummary,
+  countProviders,
+  countProvidersByVerificationStatus,
+} from "./dao/providerProfilesDao";
 
-export * from "./schema";
+export { listServicesByProviderIdWithCategories, createServicesForProvider } from "./dao/providerServicesDao";
+
+export { listAvailabilityByProviderId, upsertAvailabilitySlots } from "./dao/providerAvailabilityDao";
+
+export {
+  createServiceRequest,
+  updateServiceRequestStatus,
+  findServiceRequestById,
+  listRequestsByConsumerIdWithCategory,
+  findRequestByIdWithCategory,
+} from "./dao/serviceRequestsDao";
+
+export {
+  createBooking,
+  listBookingsByConsumerId,
+  listBookingsByProviderId,
+  getBookingDetails,
+  findBookingById,
+  updateBookingStatus,
+  listProviderBookingsJoin,
+  countBookings,
+  countBookingsByProviderId,
+  countBookingsByStatus,
+  updateBookingPayment,
+} from "./dao/bookingsDao";
+
+export {
+  createReview,
+  recalculateAndUpdateProviderAvgRating,
+  listReviewsByProviderIdWithConsumerName,
+} from "./dao/reviewsDao";
+
+export {
+  createNotification,
+  listNotificationsByUserId,
+  markNotificationAsRead,
+} from "./dao/notificationsDao";
+
+export {
+  processMockPaymentAndUpdateBooking,
+  sumPaidPaymentsAmount,
+} from "./dao/paymentsDao";

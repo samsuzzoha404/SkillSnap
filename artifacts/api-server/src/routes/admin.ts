@@ -1,32 +1,42 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { usersTable, bookingsTable, providerProfilesTable, paymentsTable } from "@workspace/db/schema";
-import { count, sum, avg, eq } from "drizzle-orm";
+import {
+  countBookingsByStatus,
+  countProvidersByVerificationStatus,
+  countUsers,
+  countBookings,
+  countProviders,
+  sumPaidPaymentsAmount,
+} from "@workspace/db";
 
 const router = Router();
 
 router.get("/stats", async (_req, res) => {
   try {
-    const [totalUsers] = await db.select({ count: count() }).from(usersTable);
-    const [totalProviders] = await db.select({ count: count() }).from(providerProfilesTable);
-    const [totalBookings] = await db.select({ count: count() }).from(bookingsTable);
-
     const activeStatuses = ["requested", "matched", "accepted", "on_the_way", "arrived", "in_progress"];
-    const allBookings = await db.select({ status: bookingsTable.status }).from(bookingsTable);
-    const activeBookings = allBookings.filter((b) => activeStatuses.includes(b.status)).length;
-    const completedBookings = allBookings.filter((b) => b.status === "completed").length;
 
-    const [revenue] = await db.select({ total: sum(paymentsTable.amount) }).from(paymentsTable).where(eq(paymentsTable.status, "paid"));
-    const [pendingVerifications] = await db.select({ count: count() }).from(providerProfilesTable).where(eq(providerProfilesTable.verificationStatus, "pending"));
+    const [totalUsers, totalProviders, totalBookings] = await Promise.all([
+      countUsers(),
+      countProviders(),
+      countBookings(),
+    ]);
+
+    const activeBookingsByStatus = await Promise.all(
+      activeStatuses.map((s) => countBookingsByStatus(s as any)),
+    );
+    const activeBookings = activeBookingsByStatus.reduce((a, b) => a + b, 0);
+
+    const completedBookings = await countBookingsByStatus("completed");
+    const totalRevenue = await sumPaidPaymentsAmount();
+    const pendingVerifications = await countProvidersByVerificationStatus("pending");
 
     return res.json({
-      totalUsers: Number(totalUsers?.count || 0),
-      totalProviders: Number(totalProviders?.count || 0),
-      totalBookings: Number(totalBookings?.count || 0),
+      totalUsers,
+      totalProviders,
+      totalBookings,
       activeBookings,
       completedBookings,
-      totalRevenue: Number(revenue?.total || 0),
-      pendingVerifications: Number(pendingVerifications?.count || 0),
+      totalRevenue,
+      pendingVerifications,
       avgRating: 4.3,
     });
   } catch (err) {

@@ -5,7 +5,8 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "@/constants/colors";
 
 function NativeTabLayout() {
@@ -33,7 +34,9 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const isIOS = Platform.OS === "ios";
+  const isAndroid = Platform.OS === "android";
   const isWeb = Platform.OS === "web";
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -47,11 +50,13 @@ function ClassicTabLayout() {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
           elevation: 0,
+          ...(isAndroid ? { minHeight: 72 + insets.bottom, paddingBottom: insets.bottom } : {}),
           ...(isWeb ? { height: 84 } : {}),
         },
         tabBarLabelStyle: {
           fontFamily: "Inter_500Medium",
           fontSize: 11,
+          ...(isAndroid ? { lineHeight: 14 } : {}),
         },
         tabBarBackground: () =>
           isIOS ? (
@@ -69,7 +74,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="house" tintColor={color} size={24} />
             ) : (
-              <Feather name="home" size={22} color={color} />
+              <Feather name="home" size={isAndroid ? 20 : 22} color={color} />
             ),
         }}
       />
@@ -81,7 +86,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="calendar" tintColor={color} size={24} />
             ) : (
-              <Feather name="calendar" size={22} color={color} />
+              <Feather name="calendar" size={isAndroid ? 20 : 22} color={color} />
             ),
         }}
       />
@@ -93,7 +98,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="bell" tintColor={color} size={24} />
             ) : (
-              <Feather name="bell" size={22} color={color} />
+              <Feather name="bell" size={isAndroid ? 20 : 22} color={color} />
             ),
         }}
       />
@@ -105,7 +110,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="person" tintColor={color} size={24} />
             ) : (
-              <Feather name="user" size={22} color={color} />
+              <Feather name="user" size={isAndroid ? 20 : 22} color={color} />
             ),
         }}
       />

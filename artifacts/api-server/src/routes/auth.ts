@@ -1,9 +1,7 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { usersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { createUser, findUserByEmail, findUserById } from "@workspace/db";
 
 const router = Router();
 
@@ -17,19 +15,19 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
     }
 
-    const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-    if (existing.length > 0) {
+    const existing = await findUserByEmail(email);
+    if (existing) {
       return res.status(400).json({ error: "ConflictError", message: "Email already registered" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const [user] = await db.insert(usersTable).values({
+    const user = await createUser({
       fullName,
       email,
       passwordHash,
-      phone: phone || null,
-      role: role || "consumer",
-    }).returning();
+      phone: phone ?? null,
+      role: (role as any) ?? "consumer",
+    });
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
 
@@ -60,7 +58,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Email and password required" });
     }
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({ error: "AuthError", message: "Invalid credentials" });
     }
@@ -100,7 +98,7 @@ router.get("/me", async (req, res) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, decoded.userId)).limit(1);
+    const user = await findUserById(decoded.userId);
     if (!user) {
       return res.status(404).json({ error: "NotFound", message: "User not found" });
     }

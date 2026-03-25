@@ -1,18 +1,18 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { notificationsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { listNotificationsByUserId, markNotificationAsRead } from "@workspace/db";
 
 const router = Router();
 
+function getSingleParam(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
+  return undefined;
+}
+
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const notifications = await db
-      .select()
-      .from(notificationsTable)
-      .where(eq(notificationsTable.userId, req.userId!))
-      .orderBy(notificationsTable.createdAt);
+    const notifications = await listNotificationsByUserId(req.userId!);
 
     return res.json(
       notifications.map((n) => ({
@@ -28,13 +28,13 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.patch("/:id/read", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const [updated] = await db
-      .update(notificationsTable)
-      .set({ isRead: true })
-      .where(eq(notificationsTable.id, req.params.id!))
-      .returning();
-
-    return res.json({ ...updated, createdAt: updated!.createdAt.toISOString() });
+    const id = getSingleParam((req.params as any).id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid notification id" });
+    }
+    const updated = await markNotificationAsRead(id);
+    if (!updated) return res.status(404).json({ error: "NotFound", message: "Notification not found" });
+    return res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "InternalError", message: "Failed to update notification" });

@@ -39,6 +39,19 @@ artifacts-monorepo/
 - **Consumer**: `consumer@skillsnap.my` / `password123`
 - **Provider**: `tan.wei.ming@skillsnap.my` / `password123`
 
+## Demo Mode (no DB)
+
+Backend (Express):
+- `artifacts/api-server/.env` has `USE_MOCK_DATA=true` by default.
+- This enables in-memory demo users + data, so `/api/auth/login` works without Postgres.
+
+Mobile app (Expo / React Native):
+- Native builds require an **absolute** API URL.
+- Set `EXPO_PUBLIC_API_URL` (must include `/api`) in `artifacts/skillsnap/.env`, e.g.
+    - `http://localhost:8080/api` (iOS Simulator)
+    - `http://10.149.141.183:8080/api` (physical device on same Wi-Fi)
+    - `http://10.0.2.2:8080/api` (Android Emulator)
+
 Run seed: `pnpm --filter @workspace/scripts run seed`
 
 ## SkillSnap App Routes

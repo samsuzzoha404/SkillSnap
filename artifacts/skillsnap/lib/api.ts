@@ -1,12 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
-
-function getApiBase() {
-  if (Platform.OS === "web") return "/api";
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}/api`;
-  return "/api";
-}
+import { getApiBase } from "@/lib/apiBase";
 
 async function getToken() {
   return AsyncStorage.getItem("auth_token");

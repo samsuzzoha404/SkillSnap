@@ -1,13 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
-
-function getApiBase() {
-  if (Platform.OS === "web") return "/api";
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}/api`;
-  return "/api";
-}
+import { getApiBase } from "@/lib/apiBase";
 
 interface User {
   id: string;
@@ -62,13 +55,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<User> => {
     const base = getApiBase();
-    const res = await fetch(`${base}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Login failed");
+    const url = `${base}/auth/login`;
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch (err: any) {
+      throw new Error(`Login network error calling ${url}: ${err?.message || String(err)}`);
+    }
+
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      // Some network / proxy failures can return HTML or empty body.
+      // Try to keep the error readable without crashing JSON parsing.
+      const fallbackText = await res.text().catch(() => "");
+      data = fallbackText ? { message: fallbackText } : null;
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.message || `Login failed (HTTP ${res.status})`);
+    }
     await AsyncStorage.setItem("auth_token", data.token);
     await AsyncStorage.setItem("auth_user", JSON.stringify(data.user));
     setToken(data.token);

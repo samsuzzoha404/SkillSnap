@@ -1,18 +1,20 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import {
-  serviceRequestsTable,
-  providerProfilesTable,
-  providerServicesTable,
-  providerAvailabilityTable,
-  bookingsTable,
-  categoriesTable,
-  usersTable,
-} from "@workspace/db/schema";
-import { eq, count } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import {
+  countBookingsByProviderId,
+  findServiceRequestById,
+  listAvailabilityByProviderId,
+  listServicesByProviderIdWithCategories,
+  listVerifiedProviderProfilesWithUserSummary,
+} from "@workspace/db";
 
 const router = Router();
+
+function getSingleParam(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
+  return undefined;
+}
 
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -36,55 +38,32 @@ const WEIGHTS = {
 
 router.get("/:requestId", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { requestId } = req.params;
+    const requestId = getSingleParam((req.params as any).requestId);
+    if (!requestId) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid request id" });
+    }
 
-    const [serviceRequest] = await db
-      .select()
-      .from(serviceRequestsTable)
-      .where(eq(serviceRequestsTable.id, requestId!))
-      .limit(1);
+    const serviceRequest = await findServiceRequestById(requestId);
 
     if (!serviceRequest) {
       return res.status(404).json({ error: "NotFound", message: "Service request not found" });
     }
 
-    const matchingProviders = await db
-      .select({
-        provider: providerProfilesTable,
-        user: { fullName: usersTable.fullName, avatarUrl: usersTable.avatarUrl },
-      })
-      .from(providerProfilesTable)
-      .innerJoin(usersTable, eq(providerProfilesTable.userId, usersTable.id))
-      .where(eq(providerProfilesTable.verificationStatus, "verified"));
+    const matchingProviders = await listVerifiedProviderProfilesWithUserSummary();
 
     const providerDetails = await Promise.all(
       matchingProviders.map(async ({ provider, user }) => {
-        const services = await db
-          .select({ category: categoriesTable, service: providerServicesTable })
-          .from(providerServicesTable)
-          .innerJoin(categoriesTable, eq(providerServicesTable.categoryId, categoriesTable.id))
-          .where(eq(providerServicesTable.providerId, provider.id));
+        const services = await listServicesByProviderIdWithCategories(provider.id);
 
         const hasCategory = services.some((s) => s.category.id === serviceRequest.categoryId);
         if (!hasCategory) return null;
 
-        const activeJobs = await db
-          .select({ count: count() })
-          .from(bookingsTable)
-          .where(eq(bookingsTable.providerId, provider.id));
-
-        const activeJobCount = activeJobs[0]?.count || 0;
+        const activeJobCount = await countBookingsByProviderId(provider.id);
 
         const dayOfWeek = new Date(serviceRequest.preferredDate).getDay();
-        const availability = await db
-          .select()
-          .from(providerAvailabilityTable)
-          .where(eq(providerAvailabilityTable.providerId, provider.id))
-          .limit(1);
+        const availability = await listAvailabilityByProviderId(provider.id);
 
-        const isAvailable = availability.some(
-          (a) => a.dayOfWeek === dayOfWeek && a.isAvailable
-        );
+        const isAvailable = availability.some((a) => a.dayOfWeek === dayOfWeek && a.isAvailable);
 
         const distance = provider.latitude && provider.longitude
           ? haversineDistance(serviceRequest.latitude, serviceRequest.longitude, provider.latitude, provider.longitude)
@@ -122,6 +101,7 @@ router.get("/:requestId", requireAuth, async (req: AuthRequest, res) => {
           userId: provider.userId,
           businessName: provider.businessName,
           bio: provider.bio,
+          email: user.email,
           yearsExperience: provider.yearsExperience,
           avgRating: provider.avgRating,
           totalJobs: provider.totalJobs,

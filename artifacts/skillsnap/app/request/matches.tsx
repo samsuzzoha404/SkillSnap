@@ -133,6 +133,11 @@ export default function MatchesScreen() {
         {selectedProvider === item.id && (
           <View style={styles.expanded}>
             <Text style={styles.bioText} numberOfLines={3}>{item.bio}</Text>
+            {item.email && (
+              <Text style={[styles.bioText, { marginTop: -4 }]}>
+                Provider account: {item.email}
+              </Text>
+            )}
             <View style={styles.scoreBreakdown}>
               <Text style={styles.breakdownTitle}>Match Score Breakdown</Text>
               {Object.entries(item.scoreBreakdown || {}).map(([key, val]: [string, any]) => (

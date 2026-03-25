@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { reviewsTable, bookingsTable, providerProfilesTable, usersTable } from "@workspace/db/schema";
-import { eq, avg } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { createReview, findBookingById } from "@workspace/db";
+import { findUserById } from "@workspace/db";
+import { recalculateAndUpdateProviderAvgRating } from "@workspace/db";
 
 const router = Router();
 
@@ -14,43 +14,21 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
     }
 
-    const [booking] = await db
-      .select()
-      .from(bookingsTable)
-      .where(eq(bookingsTable.id, bookingId))
-      .limit(1);
-
+    const booking = await findBookingById(bookingId);
     if (!booking) {
       return res.status(404).json({ error: "NotFound", message: "Booking not found" });
     }
 
-    const [review] = await db
-      .insert(reviewsTable)
-      .values({
-        bookingId,
-        consumerId: req.userId!,
-        providerId: booking.providerId,
-        rating: Number(rating),
-        comment,
-      })
-      .returning();
+    const review = await createReview({
+      bookingId,
+      consumerId: req.userId!,
+      providerId: booking.providerId,
+      rating: Number(rating),
+      comment,
+    });
 
-    const avgResult = await db
-      .select({ avg: avg(reviewsTable.rating) })
-      .from(reviewsTable)
-      .where(eq(reviewsTable.providerId, booking.providerId));
-
-    const newAvg = Number(avgResult[0]?.avg || 0);
-    await db
-      .update(providerProfilesTable)
-      .set({ avgRating: newAvg })
-      .where(eq(providerProfilesTable.id, booking.providerId));
-
-    const [consumer] = await db
-      .select({ fullName: usersTable.fullName })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.userId!))
-      .limit(1);
+    await recalculateAndUpdateProviderAvgRating(booking.providerId);
+    const consumer = await findUserById(req.userId!);
 
     return res.status(201).json({
       ...review,

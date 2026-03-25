@@ -1,19 +1,22 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import {
-  bookingsTable,
-  serviceRequestsTable,
-  providerProfilesTable,
-  reviewsTable,
-  notificationsTable,
-  categoriesTable,
-  providerServicesTable,
-  usersTable,
-} from "@workspace/db/schema";
-import { eq, or } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import {
+  createBooking,
+  createNotification,
+  getBookingDetails,
+  listBookingsByConsumerId,
+  listBookingsByProviderId,
+  updateBookingStatus,
+  updateServiceRequestStatus,
+} from "@workspace/db";
 
 const router = Router();
+
+function getSingleParam(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
+  return undefined;
+}
 
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -23,24 +26,18 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
     }
 
-    const [booking] = await db
-      .insert(bookingsTable)
-      .values({
-        serviceRequestId,
-        consumerId: req.userId!,
-        providerId,
-        status: "requested",
-        scheduledAt: new Date(scheduledAt),
-        paymentStatus: "pending",
-      })
-      .returning();
+    const booking = await createBooking({
+      serviceRequestId,
+      consumerId: req.userId!,
+      providerId,
+      status: "requested",
+      scheduledAt: new Date(scheduledAt),
+      paymentStatus: "pending",
+    });
 
-    await db
-      .update(serviceRequestsTable)
-      .set({ status: "booked" })
-      .where(eq(serviceRequestsTable.id, serviceRequestId));
+    await updateServiceRequestStatus(serviceRequestId, "booked");
 
-    await db.insert(notificationsTable).values({
+    await createNotification({
       userId: req.userId!,
       type: "booking_created",
       title: "Booking Confirmed",
@@ -63,18 +60,11 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { role } = req.query;
 
-    let bookings;
-    if (role === "provider") {
-      bookings = await db
-        .select()
-        .from(bookingsTable)
-        .where(eq(bookingsTable.providerId, req.userId!));
-    } else {
-      bookings = await db
-        .select()
-        .from(bookingsTable)
-        .where(eq(bookingsTable.consumerId, req.userId!));
-    }
+    const roleParam = Array.isArray(role) ? role[0] : role;
+    const bookings =
+      roleParam === "provider"
+        ? await listBookingsByProviderId(req.userId!)
+        : await listBookingsByConsumerId(req.userId!);
 
     return res.json(
       bookings.map((b) => ({
@@ -95,90 +85,46 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { id } = req.params;
-
-    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, id!)).limit(1);
-    if (!booking) {
-      return res.status(404).json({ error: "NotFound", message: "Booking not found" });
+    const id = getSingleParam((req.params as any).id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid booking id" });
     }
 
-    const [serviceReqRow] = await db
-      .select({ request: serviceRequestsTable, category: categoriesTable })
-      .from(serviceRequestsTable)
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(eq(serviceRequestsTable.id, booking.serviceRequestId))
-      .limit(1);
-
-    const [providerRow] = await db
-      .select({
-        provider: providerProfilesTable,
-        user: { fullName: usersTable.fullName, avatarUrl: usersTable.avatarUrl },
-      })
-      .from(providerProfilesTable)
-      .innerJoin(usersTable, eq(providerProfilesTable.userId, usersTable.id))
-      .where(eq(providerProfilesTable.id, booking.providerId))
-      .limit(1);
-
-    const services = providerRow
-      ? await db
-          .select({ category: categoriesTable, service: providerServicesTable })
-          .from(providerServicesTable)
-          .innerJoin(categoriesTable, eq(providerServicesTable.categoryId, categoriesTable.id))
-          .where(eq(providerServicesTable.providerId, providerRow.provider.id))
-      : [];
-
-    const [review] = await db
-      .select({ review: reviewsTable, consumer: { fullName: usersTable.fullName } })
-      .from(reviewsTable)
-      .innerJoin(usersTable, eq(reviewsTable.consumerId, usersTable.id))
-      .where(eq(reviewsTable.bookingId, id!))
-      .limit(1);
-
+    const details = await getBookingDetails(id);
+    if (!details) {
+      return res.status(404).json({ error: "NotFound", message: "Booking not found" });
+    }
     return res.json({
-      ...booking,
-      scheduledAt: booking.scheduledAt.toISOString(),
-      acceptedAt: booking.acceptedAt?.toISOString() || null,
-      startedAt: booking.startedAt?.toISOString() || null,
-      completedAt: booking.completedAt?.toISOString() || null,
-      cancelledAt: booking.cancelledAt?.toISOString() || null,
-      createdAt: booking.createdAt.toISOString(),
-      serviceRequest: serviceReqRow
+      ...details.booking,
+      scheduledAt: details.booking.scheduledAt.toISOString(),
+      acceptedAt: details.booking.acceptedAt?.toISOString() || null,
+      startedAt: details.booking.startedAt?.toISOString() || null,
+      completedAt: details.booking.completedAt?.toISOString() || null,
+      cancelledAt: details.booking.cancelledAt?.toISOString() || null,
+      createdAt: details.booking.createdAt.toISOString(),
+      serviceRequest: {
+        ...details.serviceRequest,
+        category: details.category,
+        createdAt: details.serviceRequest.createdAt.toISOString(),
+      },
+      provider: {
+        ...details.provider.provider,
+        categories: details.provider.categories,
+        basePrice: details.provider.basePrice,
+        priceType: details.provider.priceType,
+        avatarUrl: details.provider.avatarUrl,
+        distance: null,
+      },
+      review: details.review
         ? {
-            ...serviceReqRow.request,
-            category: serviceReqRow.category,
-            createdAt: serviceReqRow.request.createdAt.toISOString(),
-          }
-        : null,
-      provider: providerRow
-        ? {
-            id: providerRow.provider.id,
-            userId: providerRow.provider.userId,
-            businessName: providerRow.provider.businessName,
-            bio: providerRow.provider.bio,
-            yearsExperience: providerRow.provider.yearsExperience,
-            avgRating: providerRow.provider.avgRating,
-            totalJobs: providerRow.provider.totalJobs,
-            completionRate: providerRow.provider.completionRate,
-            acceptanceRate: providerRow.provider.acceptanceRate,
-            serviceRadiusKm: providerRow.provider.serviceRadiusKm,
-            verificationStatus: providerRow.provider.verificationStatus,
-            categories: services.map((s) => s.category),
-            basePrice: services[0]?.service.basePrice || 80,
-            priceType: services[0]?.service.priceType || "hourly",
-            avatarUrl: providerRow.user.avatarUrl,
-            distance: null,
-          }
-        : null,
-      review: review
-        ? {
-            id: review.review.id,
-            bookingId: review.review.bookingId,
-            consumerId: review.review.consumerId,
-            providerId: review.review.providerId,
-            rating: review.review.rating,
-            comment: review.review.comment,
-            consumerName: review.consumer.fullName,
-            createdAt: review.review.createdAt.toISOString(),
+            id: details.review.id,
+            bookingId: details.review.bookingId,
+            consumerId: details.review.consumerId,
+            providerId: details.review.providerId,
+            rating: details.review.rating,
+            comment: details.review.comment,
+            consumerName: details.review.consumerName,
+            createdAt: details.review.createdAt.toISOString(),
           }
         : null,
     });
@@ -190,30 +136,19 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
 
 router.patch("/:id/status", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { id } = req.params;
+    const id = getSingleParam((req.params as any).id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid booking id" });
+    }
     const { status } = req.body;
 
-    const now = new Date();
-    const updates: Record<string, unknown> = { status };
-
-    if (status === "accepted") updates.acceptedAt = now;
-    else if (status === "in_progress") updates.startedAt = now;
-    else if (status === "completed") {
-      updates.completedAt = now;
-      updates.finalPrice = 150;
-    } else if (status === "cancelled") updates.cancelledAt = now;
-
-    const [updated] = await db
-      .update(bookingsTable)
-      .set(updates as Parameters<typeof bookingsTable.$inferInsert>[0])
-      .where(eq(bookingsTable.id, id!))
-      .returning();
+    const updated = await updateBookingStatus(id, status);
 
     if (!updated) {
       return res.status(404).json({ error: "NotFound", message: "Booking not found" });
     }
 
-    await db.insert(notificationsTable).values({
+    await createNotification({
       userId: updated.consumerId,
       type: "booking_status",
       title: `Booking ${status.replace(/_/g, " ")}`,

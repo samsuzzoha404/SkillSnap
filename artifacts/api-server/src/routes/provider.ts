@@ -1,27 +1,22 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import {
-  providerProfilesTable,
-  providerServicesTable,
-  providerAvailabilityTable,
-  categoriesTable,
-  bookingsTable,
-  serviceRequestsTable,
-  usersTable,
-  notificationsTable,
-} from "@workspace/db/schema";
-import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import {
+  createNotification,
+  createProviderProfile,
+  createServicesForProvider,
+  findProviderProfileByUserId,
+  findUserById,
+  listAvailabilityByProviderId,
+  listProviderBookingsJoin,
+  listServicesByProviderIdWithCategories,
+  upsertAvailabilitySlots,
+  updateProviderProfile,
+} from "@workspace/db";
 
 const router = Router();
 
 async function getProviderProfile(userId: string) {
-  const [row] = await db
-    .select()
-    .from(providerProfilesTable)
-    .where(eq(providerProfilesTable.userId, userId))
-    .limit(1);
-  return row;
+  return findProviderProfileByUserId(userId);
 }
 
 router.get("/me", requireAuth, async (req: AuthRequest, res) => {
@@ -31,23 +26,11 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
     }
 
-    const [userRow] = await db
-      .select({ fullName: usersTable.fullName, email: usersTable.email, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.userId!))
-      .limit(1);
+    const userRow = await findUserById(req.userId!);
 
-    const services = await db
-      .select({ category: categoriesTable, service: providerServicesTable })
-      .from(providerServicesTable)
-      .innerJoin(categoriesTable, eq(providerServicesTable.categoryId, categoriesTable.id))
-      .where(eq(providerServicesTable.providerId, profile.id));
+    const services = await listServicesByProviderIdWithCategories(profile.id);
 
-    const availability = await db
-      .select()
-      .from(providerAvailabilityTable)
-      .where(eq(providerAvailabilityTable.providerId, profile.id))
-      .orderBy(providerAvailabilityTable.dayOfWeek);
+    const availability = await listAvailabilityByProviderId(profile.id);
 
     return res.json({
       ...profile,
@@ -83,13 +66,10 @@ router.patch("/me", requireAuth, async (req: AuthRequest, res) => {
     if (latitude !== undefined) updates.latitude = Number(latitude);
     if (longitude !== undefined) updates.longitude = Number(longitude);
 
-    const [updated] = await db
-      .update(providerProfilesTable)
-      .set(updates as any)
-      .where(eq(providerProfilesTable.id, profile.id))
-      .returning();
+    const updated = await updateProviderProfile(profile.id, updates as any);
+    if (!updated) return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
 
-    return res.json({ ...updated, createdAt: updated!.createdAt.toISOString(), updatedAt: updated!.updatedAt.toISOString() });
+    return res.json({ ...updated, createdAt: updated.createdAt.toISOString(), updatedAt: updated.updatedAt.toISOString() });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "InternalError", message: "Failed to update provider profile" });
@@ -108,42 +88,36 @@ router.post("/setup", requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Business name is required" });
     }
 
-    const [profile] = await db
-      .insert(providerProfilesTable)
-      .values({
-        userId: req.userId!,
-        businessName,
-        bio: bio || "",
-        yearsExperience: yearsExperience ? Number(yearsExperience) : 0,
-        verificationStatus: "pending",
-        serviceRadiusKm: serviceRadiusKm ? Number(serviceRadiusKm) : 15,
-        address: address || "",
-      })
-      .returning();
+    const profile = await createProviderProfile({
+      userId: req.userId!,
+      businessName,
+      bio: bio || "",
+      yearsExperience: yearsExperience ? Number(yearsExperience) : 0,
+      verificationStatus: "pending",
+      serviceRadiusKm: serviceRadiusKm ? Number(serviceRadiusKm) : 15,
+      address: address || null,
+    });
 
     if (categoryIds?.length > 0) {
-      for (const categoryId of categoryIds) {
-        await db.insert(providerServicesTable).values({
-          providerId: profile!.id,
+      await createServicesForProvider({
+        providerId: profile.id,
+        services: categoryIds.map((categoryId: string) => ({
           categoryId,
           basePrice: 80,
           priceType: "hourly",
           isActive: true,
-        }).onConflictDoNothing();
-      }
+        })),
+      });
     }
 
-    for (let day = 1; day <= 5; day++) {
-      await db.insert(providerAvailabilityTable).values({
-        providerId: profile!.id,
-        dayOfWeek: day,
-        startTime: "09:00",
-        endTime: "18:00",
-        isAvailable: true,
-      }).onConflictDoNothing();
-    }
+    await upsertAvailabilitySlots(profile.id, Array.from({ length: 5 }, (_, i) => ({
+      dayOfWeek: i + 1,
+      startTime: "09:00",
+      endTime: "18:00",
+      isAvailable: true,
+    })));
 
-    await db.insert(notificationsTable).values({
+    await createNotification({
       userId: req.userId!,
       type: "verification",
       title: "Profile Submitted",
@@ -151,7 +125,7 @@ router.post("/setup", requireAuth, async (req: AuthRequest, res) => {
       isRead: false,
     });
 
-    return res.status(201).json({ ...profile, createdAt: profile!.createdAt.toISOString(), updatedAt: profile!.updatedAt.toISOString() });
+    return res.status(201).json({ ...profile, createdAt: profile.createdAt.toISOString(), updatedAt: profile.updatedAt.toISOString() });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "InternalError", message: "Failed to create provider profile" });
@@ -165,19 +139,7 @@ router.get("/inbox", requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
     }
 
-    const bookings = await db
-      .select({
-        booking: bookingsTable,
-        request: serviceRequestsTable,
-        consumer: { fullName: usersTable.fullName, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl },
-        category: categoriesTable,
-      })
-      .from(bookingsTable)
-      .innerJoin(serviceRequestsTable, eq(bookingsTable.serviceRequestId, serviceRequestsTable.id))
-      .innerJoin(usersTable, eq(bookingsTable.consumerId, usersTable.id))
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(and(eq(bookingsTable.providerId, profile.id), eq(bookingsTable.status, "requested")))
-      .orderBy(desc(bookingsTable.createdAt));
+    const bookings = await listProviderBookingsJoin(profile.id, { status: "requested" });
 
     return res.json(
       bookings.map(({ booking, request, consumer, category }) => ({
@@ -204,28 +166,11 @@ router.get("/bookings", requireAuth, async (req: AuthRequest, res) => {
 
     const { status } = req.query;
 
-    let query = db
-      .select({
-        booking: bookingsTable,
-        request: serviceRequestsTable,
-        consumer: { fullName: usersTable.fullName, phone: usersTable.phone, avatarUrl: usersTable.avatarUrl },
-        category: categoriesTable,
-      })
-      .from(bookingsTable)
-      .innerJoin(serviceRequestsTable, eq(bookingsTable.serviceRequestId, serviceRequestsTable.id))
-      .innerJoin(usersTable, eq(bookingsTable.consumerId, usersTable.id))
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(eq(bookingsTable.providerId, profile.id))
-      .orderBy(desc(bookingsTable.createdAt)) as any;
-
-    const bookings = await query;
-
-    const filtered = status
-      ? bookings.filter((b: any) => b.booking.status === status)
-      : bookings;
+    const statusParam = Array.isArray(status) ? status[0] : status;
+    const bookings = await listProviderBookingsJoin(profile.id, statusParam ? { status: statusParam as any } : undefined);
 
     return res.json(
-      filtered.map(({ booking, request, consumer, category }: any) => ({
+      bookings.map(({ booking, request, consumer, category }) => ({
         ...booking,
         scheduledAt: booking.scheduledAt.toISOString(),
         createdAt: booking.createdAt.toISOString(),
@@ -250,11 +195,7 @@ router.get("/earnings", requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
     }
 
-    const allBookings = await db
-      .select()
-      .from(bookingsTable)
-      .where(eq(bookingsTable.providerId, profile.id))
-      .orderBy(desc(bookingsTable.createdAt));
+    const allBookings = (await listProviderBookingsJoin(profile.id)).map((j) => j.booking);
 
     const completedBookings = allBookings.filter((b) => b.status === "completed");
     const totalEarnings = completedBookings.reduce((s, b) => s + (b.finalPrice || 0), 0);
@@ -293,11 +234,7 @@ router.get("/schedule", requireAuth, async (req: AuthRequest, res) => {
     const profile = await getProviderProfile(req.userId!);
     if (!profile) return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
 
-    const availability = await db
-      .select()
-      .from(providerAvailabilityTable)
-      .where(eq(providerAvailabilityTable.providerId, profile.id))
-      .orderBy(providerAvailabilityTable.dayOfWeek);
+    const availability = await listAvailabilityByProviderId(profile.id);
 
     return res.json(availability);
   } catch (err) {
@@ -312,36 +249,9 @@ router.put("/schedule", requireAuth, async (req: AuthRequest, res) => {
     if (!profile) return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
 
     const { availability } = req.body;
+    await upsertAvailabilitySlots(profile.id, availability || []);
 
-    for (const slot of (availability || [])) {
-      const existing = await db
-        .select()
-        .from(providerAvailabilityTable)
-        .where(and(eq(providerAvailabilityTable.providerId, profile.id), eq(providerAvailabilityTable.dayOfWeek, slot.dayOfWeek)))
-        .limit(1);
-
-      if (existing.length > 0) {
-        await db
-          .update(providerAvailabilityTable)
-          .set({ startTime: slot.startTime, endTime: slot.endTime, isAvailable: slot.isAvailable })
-          .where(eq(providerAvailabilityTable.id, existing[0]!.id));
-      } else {
-        await db.insert(providerAvailabilityTable).values({
-          providerId: profile.id,
-          dayOfWeek: slot.dayOfWeek,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          isAvailable: slot.isAvailable,
-        });
-      }
-    }
-
-    const updated = await db
-      .select()
-      .from(providerAvailabilityTable)
-      .where(eq(providerAvailabilityTable.providerId, profile.id))
-      .orderBy(providerAvailabilityTable.dayOfWeek);
-
+    const updated = await listAvailabilityByProviderId(profile.id);
     return res.json(updated);
   } catch (err) {
     console.error(err);
@@ -354,16 +264,12 @@ router.get("/dashboard", requireAuth, async (req: AuthRequest, res) => {
     const profile = await getProviderProfile(req.userId!);
     if (!profile) return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
 
-    const allBookings = await db
-      .select({ booking: bookingsTable, request: serviceRequestsTable, category: categoriesTable })
-      .from(bookingsTable)
-      .innerJoin(serviceRequestsTable, eq(bookingsTable.serviceRequestId, serviceRequestsTable.id))
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(eq(bookingsTable.providerId, profile.id))
-      .orderBy(desc(bookingsTable.createdAt));
+    const allBookings = await listProviderBookingsJoin(profile.id);
 
     const pending = allBookings.filter((b) => b.booking.status === "requested").length;
-    const active = allBookings.filter((b) => ["accepted", "on_the_way", "arrived", "in_progress"].includes(b.booking.status)).length;
+    const active = allBookings.filter((b) =>
+      ["accepted", "on_the_way", "arrived", "in_progress"].includes(b.booking.status),
+    ).length;
     const completed = allBookings.filter((b) => b.booking.status === "completed");
     const totalEarnings = completed.reduce((s, b) => s + (b.booking.finalPrice || 0), 0);
 

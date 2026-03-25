@@ -1,5 +1,8 @@
 const expoDomain = process.env.REPLIT_EXPO_DEV_DOMAIN;
-const origin = expoDomain ? `https://${expoDomain}` : "https://localhost:8081";
+const devPort = process.env.PORT || "22172";
+// For local dev, prefer the same host Metro binds to (LAN IP when using Expo Go on device).
+const devHost = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || "localhost";
+const origin = expoDomain ? `https://${expoDomain}` : `http://${devHost}:${devPort}`;
 
 module.exports = {
   expo: {

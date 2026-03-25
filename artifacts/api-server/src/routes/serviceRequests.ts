@@ -1,10 +1,20 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
-import { serviceRequestsTable, categoriesTable, notificationsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import {
+  createNotification,
+  createServiceRequest,
+  findCategoryById,
+  findRequestByIdWithCategory,
+  listRequestsByConsumerIdWithCategory,
+} from "@workspace/db";
 
 const router = Router();
+
+function getSingleParam(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return typeof value[0] === "string" ? value[0] : undefined;
+  return undefined;
+}
 
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -24,24 +34,20 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
     }
 
-    const [request] = await db
-      .insert(serviceRequestsTable)
-      .values({
-        consumerId: req.userId!,
-        categoryId,
-        title,
-        description,
-        address,
-        latitude: latitude || 3.1390,
-        longitude: longitude || 101.6869,
-        preferredDate,
-        preferredTime,
-        urgency: urgency || "medium",
-        status: "pending",
-      })
-      .returning();
+    const request = await createServiceRequest({
+      consumerId: req.userId!,
+      categoryId,
+      title,
+      description,
+      address,
+      latitude: latitude || 3.1390,
+      longitude: longitude || 101.6869,
+      preferredDate,
+      preferredTime,
+      urgency: urgency || "medium",
+    });
 
-    await db.insert(notificationsTable).values({
+    await createNotification({
       userId: req.userId!,
       type: "service_request",
       title: "Service Request Created",
@@ -49,11 +55,10 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       isRead: false,
     });
 
-    const [category] = await db
-      .select()
-      .from(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId))
-      .limit(1);
+    const category = await findCategoryById(categoryId);
+    if (!category) {
+      return res.status(404).json({ error: "NotFound", message: "Category not found" });
+    }
 
     return res.status(201).json({
       ...request,
@@ -68,11 +73,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const requests = await db
-      .select({ request: serviceRequestsTable, category: categoriesTable })
-      .from(serviceRequestsTable)
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(eq(serviceRequestsTable.consumerId, req.userId!));
+    const requests = await listRequestsByConsumerIdWithCategory(req.userId!);
 
     return res.json(
       requests.map(({ request, category }) => ({
@@ -89,13 +90,12 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const [row] = await db
-      .select({ request: serviceRequestsTable, category: categoriesTable })
-      .from(serviceRequestsTable)
-      .leftJoin(categoriesTable, eq(serviceRequestsTable.categoryId, categoriesTable.id))
-      .where(eq(serviceRequestsTable.id, req.params.id!))
-      .limit(1);
+    const id = getSingleParam((req.params as any).id);
+    if (!id) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid service request id" });
+    }
 
+    const row = await findRequestByIdWithCategory(id);
     if (!row) {
       return res.status(404).json({ error: "NotFound", message: "Service request not found" });
     }
