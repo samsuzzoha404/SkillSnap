@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 import { StarRating } from "@/components/StarRating";
 
 export default function ProviderDetailScreen() {
@@ -29,6 +30,7 @@ export default function ProviderDetailScreen() {
     queryKey: ["provider", id],
     queryFn: () => api.get(`/providers/${id}`),
     enabled: !!id,
+    ...liveListQueryOptions,
   });
 
   const { mutate: quickBook, isPending: isBooking } = useMutation({

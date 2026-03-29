@@ -1,7 +1,51 @@
+import { ObjectId, UUID } from "mongodb";
 import { getCollection, collections } from "../mongo";
 import { mapMongoDoc } from "./utils";
 import { newId } from "./id";
 import type { UserDoc } from "./usersDao";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Match provider_profiles._id for string UUID, BSON UUID, or ObjectId.
+ * (MongoDB stores _id as different BSON types; query shape must match the stored type.)
+ */
+function providerProfileIdFilter(id: string): Record<string, unknown> {
+  const or: Array<Record<string, unknown>> = [{ _id: id }];
+
+  if (id.length === 24 && /^[a-f0-9]{24}$/i.test(id)) {
+    try {
+      or.push({ _id: new ObjectId(id) });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (UUID_REGEX.test(id)) {
+    try {
+      or.push({ _id: new UUID(id) });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (or.length === 1) return or[0]!;
+  return { $or: or };
+}
+
+/** Resolve raw Mongo doc; prefer `$expr` so client `id` always matches how list/detail serialize `String(_id)`. */
+async function findRawProviderProfileDoc(clientId: string): Promise<Record<string, unknown> | null> {
+  const trimmed = clientId.trim();
+  if (!trimmed) return null;
+  const coll = await getCollection<ProviderProfileDoc>(collections.provider_profiles);
+  let doc = await coll.findOne({
+    $expr: { $eq: [{ $toString: "$_id" }, trimmed] },
+  } as any);
+  if (!doc) {
+    doc = await coll.findOne(providerProfileIdFilter(trimmed));
+  }
+  return doc as Record<string, unknown> | null;
+}
 
 export type VerificationStatus = "pending" | "verified" | "rejected";
 
@@ -48,9 +92,8 @@ export async function findProviderProfileByUserId(
 }
 
 export async function findProviderProfileById(id: string): Promise<ProviderProfile | null> {
-  const coll = await getCollection<ProviderProfileDoc>(collections.provider_profiles);
-  const doc = await coll.findOne({ _id: id });
-  return doc ? (mapMongoDoc(doc) as ProviderProfile) : null;
+  const doc = await findRawProviderProfileDoc(id);
+  return doc ? (mapMongoDoc(doc as any) as ProviderProfile) : null;
 }
 
 export async function createProviderProfile(input: {
@@ -98,14 +141,31 @@ export async function updateProviderProfile(
   updates: Partial<Omit<ProviderProfileDoc, "_id" | "createdAt" | "updatedAt">>,
 ): Promise<ProviderProfile | null> {
   const coll = await getCollection<ProviderProfileDoc>(collections.provider_profiles);
-  const now = new Date();
-  await coll.updateOne(
-    { _id: id },
-    { $set: { ...(updates as any), updatedAt: now } },
-  );
+  const raw = await findRawProviderProfileDoc(id);
+  if (!raw) return null;
 
-  const updatedDoc = await coll.findOne({ _id: id });
-  return updatedDoc ? (mapMongoDoc(updatedDoc) as ProviderProfile) : null;
+  const now = new Date();
+  const pk = Object.prototype.hasOwnProperty.call(raw, "_id") ? (raw as any)._id : null;
+  if (pk == null) return null;
+
+  await coll.updateOne({ _id: pk } as any, { $set: { ...(updates as any), updatedAt: now } });
+  const updatedDoc = await coll.findOne({ _id: pk } as any);
+  return updatedDoc ? (mapMongoDoc(updatedDoc as any) as ProviderProfile) : null;
+}
+
+/**
+ * Find multiple provider profiles by their IDs (handles mixed string/ObjectId/UUID _id types).
+ * Uses $expr/$toString as a fallback so seeded or legacy documents are always matched.
+ */
+export async function findProviderProfilesByIds(ids: string[]): Promise<ProviderProfile[]> {
+  if (ids.length === 0) return [];
+  const coll = await getCollection<ProviderProfileDoc>(collections.provider_profiles);
+  const docs = await coll
+    .find({
+      $expr: { $in: [{ $toString: "$_id" }, ids] },
+    } as any)
+    .toArray();
+  return docs.map((d) => mapMongoDoc(d) as ProviderProfile);
 }
 
 export async function countProviders(): Promise<number> {

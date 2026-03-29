@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
@@ -31,7 +32,7 @@ export default function ProviderInbox() {
   const { data: inbox = [], isLoading, refetch } = useQuery({
     queryKey: ["provider-inbox"],
     queryFn: () => api.get("/provider/inbox"),
-    refetchInterval: 30000,
+    ...liveListQueryOptions,
     retry: false,
   });
 

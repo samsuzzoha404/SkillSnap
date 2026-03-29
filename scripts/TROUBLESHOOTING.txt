@@ -1,0 +1,21 @@
+SkillSnap API + admin UI — quick triage (symptom → check)
+
+- ECONNREFUSED / fetch failed → API not running; wrong VITE_API_BASE_URL (port/host/https).
+- CORS in browser → default cors() is open; if customized, check FRONTEND_ORIGIN / allowlist.
+- 401 on /admin/* → No Bearer token (localStorage skillsnap_token), expired JWT, login failed.
+- 403 on /admin/* → JWT role is not admin; use admin@skillsnap.my after seed.
+- Mock / no DB data → USE_MOCK_DATA must not be "true" for real routes.
+- Empty stats/charts → DB empty; run: pnpm --filter @workspace/scripts seed (needs MONGODB_URI).
+- Seed fails MONGODB_URI → Set MONGODB_URI in repo .env or artifacts/api-server/.env; seed loads both via loadEnv.
+- Consumer blocked from /admin → Expected (RoleGate); only role=admin may open /admin routes.
+
+Verification commands:
+- Seed: pnpm --filter @workspace/scripts seed
+- API smoke (API must be on 8080): pnpm --filter @workspace/scripts verify-api
+  (checks health, categories, admin stats, consumer bookings, provider /provider/me + /provider/dashboard)
+- Typecheck SkillSnap stack (excludes mockup-sandbox): pnpm typecheck:stack
+- Admin build with API URL: set VITE_API_BASE_URL=http://localhost:8080/api then pnpm --filter @workspace/admin build
+
+Demo accounts (after seed):
+- Admin: admin@skillsnap.my / password123
+- Consumer: consumer@skillsnap.my / password123

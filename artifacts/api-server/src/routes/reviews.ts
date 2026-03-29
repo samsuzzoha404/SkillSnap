@@ -1,17 +1,36 @@
 import { Router } from "express";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
-import { createReview, findBookingById } from "@workspace/db";
-import { findUserById } from "@workspace/db";
-import { recalculateAndUpdateProviderAvgRating } from "@workspace/db";
+import {
+  createReview,
+  findBookingById,
+  findUserById,
+  listReviewsByConsumerId,
+  recalculateAndUpdateProviderAvgRating,
+} from "@workspace/db";
 
 const router = Router();
 
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const reviews = await listReviewsByConsumerId(req.userId!);
+    return res.json(
+      reviews.map((r) => ({
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "InternalError", message: "Failed to fetch reviews" });
+  }
+});
+
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { bookingId, rating, comment } = req.body;
+    const { bookingId, rating, comment = "" } = req.body;
 
-    if (!bookingId || !rating || !comment) {
-      return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
+    if (!bookingId || !rating) {
+      return res.status(400).json({ error: "ValidationError", message: "Missing required fields: bookingId, rating" });
     }
 
     const booking = await findBookingById(bookingId);

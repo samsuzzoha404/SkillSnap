@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveFastQueryOptions } from "@/lib/liveQuery";
 
 const PAYMENT_METHODS = [
   { id: "fpx", name: "FPX Online Banking", icon: "business-outline", desc: "All Malaysian banks supported" },
@@ -37,6 +38,7 @@ export default function PaymentScreen() {
     queryKey: ["booking", bookingId],
     queryFn: () => api.get(`/bookings/${bookingId}`),
     enabled: !!bookingId,
+    ...liveFastQueryOptions,
   });
 
   const amount = booking?.finalPrice || 150;

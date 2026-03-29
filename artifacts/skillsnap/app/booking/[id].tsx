@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveFastQueryOptions } from "@/lib/liveQuery";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StarRating } from "@/components/StarRating";
 
@@ -42,7 +43,7 @@ export default function BookingDetailScreen() {
     queryKey: ["booking", id],
     queryFn: () => api.get(`/bookings/${id}`),
     enabled: !!id,
-    refetchInterval: 15000,
+    ...liveFastQueryOptions,
   });
 
   const { mutate: updateStatus } = useMutation({

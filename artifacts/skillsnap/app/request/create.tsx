@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const URGENCY_OPTIONS = [
   { value: "low", label: "Low", desc: "No rush", color: Colors.success },
@@ -66,6 +67,7 @@ export default function CreateRequestScreen() {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get("/categories"),
+    ...liveListQueryOptions,
   });
 
   const { mutate: createRequest, isPending } = useMutation({

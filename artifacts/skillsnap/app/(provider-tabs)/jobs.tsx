@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
@@ -61,7 +62,7 @@ export default function ProviderJobs() {
   const { data: allJobs = [], isLoading, refetch } = useQuery({
     queryKey: ["provider-bookings"],
     queryFn: () => api.get("/provider/bookings"),
-    refetchInterval: 20000,
+    ...liveListQueryOptions,
     retry: false,
   });
 

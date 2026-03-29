@@ -29,6 +29,16 @@ export default function LoginScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const routeAfterLogin = (loggedInUser: { role: string }) => {
+    if (loggedInUser.role === "provider") {
+      router.replace("/(provider-tabs)/dashboard");
+    } else if (loggedInUser.role === "admin") {
+      router.replace("/");
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert("Missing Fields", "Please enter your email and password.");
@@ -37,11 +47,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const loggedInUser = await login(email.trim().toLowerCase(), password);
-      if (loggedInUser.role === "provider") {
-        router.replace("/(provider-tabs)/dashboard");
-      } else {
-        router.replace("/(tabs)");
-      }
+      routeAfterLogin(loggedInUser);
     } catch (err: any) {
       Alert.alert("Login Failed", err.message || "Invalid credentials. Please check your email and password.");
     } finally {
@@ -49,13 +55,14 @@ export default function LoginScreen() {
     }
   };
 
+  /** Fills fields only — user taps Sign In to submit (same creds as scripts/src/seed.ts + mock API). */
   const fillDemoConsumer = () => {
     setEmail("consumer@skillsnap.my");
     setPassword("password123");
   };
 
   const fillDemoProvider = () => {
-    setEmail("tan.wei.ming@skillsnap.my");
+    setEmail("electrical.1@skillsnap.my");
     setPassword("password123");
   };
 
@@ -94,7 +101,10 @@ export default function LoginScreen() {
             <Ionicons name="person-outline" size={15} color={Colors.primary} />
             <Text style={styles.demoBtnText}>Demo Consumer</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.demoBtn, { borderColor: "#10B981" + "30", backgroundColor: "#10B981" + "10" }]} onPress={fillDemoProvider}>
+          <TouchableOpacity
+            style={[styles.demoBtn, { borderColor: "#10B981" + "30", backgroundColor: "#10B981" + "10" }]}
+            onPress={fillDemoProvider}
+          >
             <Ionicons name="briefcase-outline" size={15} color="#10B981" />
             <Text style={[styles.demoBtnText, { color: "#10B981" }]}>Demo Provider</Text>
           </TouchableOpacity>

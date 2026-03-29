@@ -21,6 +21,15 @@ import {
   MockNotification,
 } from "./store.js";
 
+const ACTIVE_BOOKING_STATUSES = new Set([
+  "requested",
+  "matched",
+  "accepted",
+  "on_the_way",
+  "arrived",
+  "in_progress",
+]);
+
 const router = Router();
 
 function getAuth(req: Request): { userId: string; role: string } | null {
@@ -37,6 +46,19 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   }
   (req as any).userId = auth.userId;
   (req as any).userRole = auth.role;
+  next();
+}
+
+function requireAdmin(req: Request, res: Response, next: () => void) {
+  const auth = getAuth(req);
+  if (!auth) {
+    res.status(401).json({ error: "AuthError", message: "Authentication required" });
+    return;
+  }
+  if (auth.role !== "admin") {
+    res.status(403).json({ error: "Forbidden", message: "Admin access required" });
+    return;
+  }
   next();
 }
 
@@ -192,7 +214,13 @@ router.post("/api/auth/login", async (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ error: "ValidationError", message: "Email and password required" });
   }
-  const user = users.find(u => u.email === email.toLowerCase());
+  const emailNorm = String(email).trim().toLowerCase();
+  /** Aligns app demo button with Mongo seed; mock fixtures use tan.wei.ming@ for that provider. */
+  const LOGIN_ALIASES: Record<string, string> = {
+    "electrical.1@skillsnap.my": "tan.wei.ming@skillsnap.my",
+  };
+  const lookupEmail = LOGIN_ALIASES[emailNorm] ?? emailNorm;
+  const user = users.find((u) => u.email === lookupEmail);
   if (!user) {
     return res.status(401).json({ error: "AuthError", message: "Invalid credentials" });
   }
@@ -871,6 +899,245 @@ router.get("/api/matching/providers", requireAuth as any, (req, res) => {
     .sort((a, b) => b.matchScore - a.matchScore);
 
   res.json(matches);
+});
+
+/** Admin routes (demo mode): admin UI expects these under `/api/admin/*`. */
+router.get("/api/admin/stats", requireAdmin as any, (_req, res) => {
+  const totalUsers = users.length;
+  const totalProviders = providerProfiles.length;
+  const totalBookings = bookings.length;
+  const activeBookings = bookings.filter(b => ACTIVE_BOOKING_STATUSES.has(b.status)).length;
+  const completedBookings = bookings.filter(b => b.status === "completed").length;
+  const totalRevenue = bookings.filter(b => b.paymentStatus === "paid").reduce((s, b) => s + (b.finalPrice || 0), 0);
+  const pendingVerifications = providerProfiles.filter(p => p.verificationStatus === "pending").length;
+  const verified = providerProfiles.filter(p => p.verificationStatus === "verified");
+  const avgRating = verified.length ? verified.reduce((s, p) => s + p.avgRating, 0) / verified.length : 0;
+  const completionRate = totalBookings ? (completedBookings / totalBookings) * 100 : 0;
+  res.json({
+    totalUsers,
+    totalProviders,
+    totalBookings,
+    activeBookings,
+    completedBookings,
+    totalRevenue,
+    pendingVerifications,
+    avgRating: Math.round(avgRating * 10) / 10,
+    completionRate: Math.round(completionRate * 10) / 10,
+    openDisputes: 0,
+  });
+});
+
+router.get("/api/admin/analytics", requireAdmin as any, (req, res) => {
+  const months = Math.min(Math.max(Number.parseInt(String(req.query.months ?? "12"), 10) || 12, 1), 24);
+  const series: { month: string; bookings: number; revenue: number }[] = [];
+  const start = new Date();
+  start.setUTCMonth(start.getUTCMonth() - (months - 1));
+  start.setUTCDate(1);
+  start.setUTCHours(0, 0, 0, 0);
+  for (let i = 0; i < months; i++) {
+    const d = new Date(start);
+    d.setUTCMonth(start.getUTCMonth() + i);
+    series.push({ month: d.toISOString().slice(0, 7), bookings: 0, revenue: 0 });
+  }
+  for (const b of bookings) {
+    const bk = b.createdAt.slice(0, 7);
+    const slot = series.find(s => s.month === bk);
+    if (slot) slot.bookings += 1;
+    if (b.paymentStatus === "paid" && b.finalPrice) {
+      const paidAt = (b.completedAt || b.scheduledAt).slice(0, 7);
+      const revSlot = series.find(s => s.month === paidAt);
+      if (revSlot) revSlot.revenue += b.finalPrice;
+    }
+  }
+  res.json({ series });
+});
+
+router.get("/api/admin/category-stats", requireAdmin as any, (_req, res) => {
+  const rows = categories.map((c) => {
+    const providerCount = new Set(providerServices.filter(s => s.categoryId === c.id && s.isActive).map(s => s.providerId)).size;
+    const reqs = serviceRequests.filter(r => r.categoryId === c.id);
+    const bookingCount = bookings.filter(b => reqs.some(r => r.id === b.serviceRequestId)).length;
+    const provProfiles = providerProfiles.filter(p =>
+      providerServices.some(s => s.providerId === p.id && s.categoryId === c.id),
+    );
+    const ratings = provProfiles.map(p => p.avgRating).filter(x => x > 0);
+    const avgProviderRating = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+    return {
+      categoryId: c.id,
+      name: c.name,
+      providerCount,
+      bookingCount,
+      avgProviderRating: Math.round(avgProviderRating * 10) / 10,
+    };
+  });
+  res.json(rows);
+});
+
+router.get("/api/admin/users", requireAdmin as any, (req, res) => {
+  const limit = Math.min(Number.parseInt(String(req.query.limit ?? "50"), 10) || 50, 200);
+  const offset = Number.parseInt(String(req.query.offset ?? "0"), 10) || 0;
+  const role = typeof req.query.role === "string" ? req.query.role : undefined;
+  let list = [...users];
+  if (role && ["consumer", "provider", "admin"].includes(role)) {
+    list = list.filter(u => u.role === role);
+  }
+  list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const total = list.length;
+  const slice = list.slice(offset, offset + limit);
+  res.json({
+    items: slice.map(u => ({
+      id: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      isActive: u.isActive,
+      avatarUrl: u.avatarUrl,
+      createdAt: u.createdAt,
+      updatedAt: u.createdAt,
+    })),
+    total,
+  });
+});
+
+router.get("/api/admin/providers", requireAdmin as any, (req, res) => {
+  const limit = Math.min(Number.parseInt(String(req.query.limit ?? "50"), 10) || 50, 200);
+  const offset = Number.parseInt(String(req.query.offset ?? "0"), 10) || 0;
+  const vs = typeof req.query.verificationStatus === "string" ? req.query.verificationStatus : undefined;
+  let list = [...providerProfiles];
+  if (vs && ["pending", "verified", "rejected"].includes(vs)) {
+    list = list.filter(p => p.verificationStatus === vs);
+  }
+  list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const total = list.length;
+  const slice = list.slice(offset, offset + limit);
+  const items = slice
+    .map((p) => {
+      const u = users.find(u => u.id === p.userId);
+      if (!u) return null;
+      return {
+        ...p,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        user: { fullName: u.fullName, avatarUrl: u.avatarUrl, email: u.email, phone: u.phone },
+      };
+    })
+    .filter(Boolean);
+  res.json({ items, total });
+});
+
+router.patch("/api/admin/providers/verification", requireAdmin as any, (req, res) => {
+  const { providerId, verificationStatus, reason } = req.body as {
+    providerId?: string;
+    verificationStatus?: string;
+    reason?: string;
+  };
+  const id = typeof providerId === "string" ? providerId.trim() : "";
+  if (!id) {
+    return res.status(400).json({ error: "ValidationError", message: "providerId is required" });
+  }
+  if (verificationStatus !== "verified" && verificationStatus !== "rejected") {
+    return res.status(400).json({
+      error: "ValidationError",
+      message: "verificationStatus must be \"verified\" or \"rejected\"",
+    });
+  }
+  const profile = providerProfiles.find(p => p.id === id);
+  if (!profile) {
+    return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
+  }
+  const u = users.find(u => u.id === profile.userId);
+  if (!u) {
+    return res.status(404).json({ error: "NotFound", message: "Provider profile not found" });
+  }
+  profile.verificationStatus = verificationStatus;
+  profile.updatedAt = new Date().toISOString();
+  if (verificationStatus === "verified") {
+    notifications.push({
+      id: uid(),
+      userId: profile.userId,
+      type: "verification",
+      title: "Profile verified",
+      body: "Your provider profile has been approved. You can now receive job matches.",
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    });
+  } else {
+    const detail = typeof reason === "string" && reason.trim() ? ` Reason: ${reason.trim()}` : "";
+    notifications.push({
+      id: uid(),
+      userId: profile.userId,
+      type: "verification",
+      title: "Profile not approved",
+      body: `Your provider verification was rejected.${detail}`,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  return res.json({
+    ...profile,
+    user: {
+      fullName: u.fullName,
+      avatarUrl: u.avatarUrl,
+      email: u.email,
+      phone: u.phone,
+    },
+  });
+});
+
+router.get("/api/admin/bookings", requireAdmin as any, (_req, res) => {
+  const items = bookings
+    .map((b) => {
+      const sr = serviceRequests.find(r => r.id === b.serviceRequestId);
+      if (!sr) return null;
+      const cat = categories.find(c => c.id === sr.categoryId);
+      if (!cat) return null;
+      const pp = providerProfiles.find(p => p.id === b.providerId);
+      const consumer = users.find(u => u.id === b.consumerId);
+      return {
+        booking: {
+          id: b.id,
+          serviceRequestId: b.serviceRequestId,
+          consumerId: b.consumerId,
+          providerId: b.providerId,
+          status: b.status,
+          scheduledAt: b.scheduledAt,
+          acceptedAt: b.acceptedAt,
+          startedAt: b.startedAt,
+          completedAt: b.completedAt,
+          cancelledAt: b.cancelledAt,
+          finalPrice: b.finalPrice,
+          paymentStatus: b.paymentStatus,
+          notes: b.notes,
+          createdAt: b.createdAt,
+        },
+        serviceRequest: {
+          id: sr.id,
+          consumerId: sr.consumerId,
+          categoryId: sr.categoryId,
+          title: sr.title,
+          description: sr.description,
+          address: sr.address,
+          latitude: sr.latitude,
+          longitude: sr.longitude,
+          urgency: sr.urgency,
+          preferredDate: sr.preferredDate,
+          preferredTime: sr.preferredTime,
+          status: sr.status,
+          budget: sr.budget,
+          createdAt: sr.createdAt,
+        },
+        category: { id: cat.id, name: cat.name, description: cat.description, icon: cat.iconUrl, isActive: cat.isActive },
+        consumerName: consumer?.fullName ?? "—",
+        providerBusinessName: pp?.businessName ?? "—",
+      };
+    })
+    .filter(Boolean);
+  res.json({ items, total: items.length });
+});
+
+router.get("/api/admin/payments", requireAdmin as any, (_req, res) => {
+  res.json({ items: [], total: 0 });
 });
 
 export default router;

@@ -4,6 +4,9 @@ const devPort = process.env.PORT || "22172";
 const devHost = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || "localhost";
 const origin = expoDomain ? `https://${expoDomain}` : `http://${devHost}:${devPort}`;
 
+/** Baked into the manifest so native clients can reach the API without relying on hostUri/debuggerHost shape. */
+const apiDevHost = process.env.REACT_NATIVE_PACKAGER_HOSTNAME || undefined;
+
 module.exports = {
   expo: {
     name: "SkillSnap",
@@ -39,6 +42,9 @@ module.exports = {
     experiments: {
       typedRoutes: true,
       reactCompiler: true,
+    },
+    extra: {
+      apiDevHost,
     },
   },
 };

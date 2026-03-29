@@ -14,7 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 import { StatusBadge } from "@/components/StatusBadge";
 
 const TABS = ["All", "Active", "Completed", "Cancelled"];
@@ -22,6 +24,7 @@ const TABS = ["All", "Active", "Completed", "Cancelled"];
 export default function BookingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState("All");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -31,6 +34,9 @@ export default function BookingsScreen() {
   const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.get("/bookings"),
+    ...liveListQueryOptions,
+    enabled: !!token,
+    retry: false,
   });
 
   const onRefresh = async () => {

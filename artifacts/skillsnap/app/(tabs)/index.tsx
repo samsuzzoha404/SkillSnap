@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 import { StatusBadge } from "@/components/StatusBadge";
 import { StarRating } from "@/components/StarRating";
 
@@ -33,7 +34,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -42,16 +43,21 @@ export default function HomeScreen() {
   const { data: categories = [], refetch: refetchCats } = useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get("/categories"),
+    ...liveListQueryOptions,
   });
 
   const { data: bookings = [], refetch: refetchBookings } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.get("/bookings"),
+    ...liveListQueryOptions,
+    enabled: !!token,
+    retry: false,
   });
 
   const { data: providers = [] } = useQuery({
     queryKey: ["providers"],
     queryFn: () => api.get("/providers"),
+    ...liveListQueryOptions,
   });
 
   const onRefresh = async () => {

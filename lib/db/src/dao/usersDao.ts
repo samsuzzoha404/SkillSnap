@@ -1,6 +1,34 @@
+import { ObjectId, UUID } from "mongodb";
 import { getCollection, collections } from "../mongo";
 import { mapMongoDoc } from "./utils";
 import { newId } from "./id";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** Match users._id for string UUID, BSON UUID, or ObjectId (legacy). */
+function userIdFilter(id: string): Record<string, unknown> {
+  const or: Array<Record<string, unknown>> = [{ _id: id }];
+  if (id.length === 24 && /^[a-f0-9]{24}$/i.test(id)) {
+    try {
+      or.push({ _id: new ObjectId(id) });
+    } catch {
+      /* ignore */
+    }
+  }
+  if (UUID_REGEX.test(id)) {
+    try {
+      or.push({ _id: new UUID(id) });
+    } catch {
+      /* ignore */
+    }
+  }
+  if (or.length === 1) return or[0]!;
+  return { $or: or };
+}
 
 export type UserRole = "consumer" | "provider" | "admin";
 
@@ -21,13 +49,24 @@ export type User = Omit<UserDoc, "_id"> & { id: string };
 
 export async function findUserByEmail(email: string): Promise<User | null> {
   const users = await getCollection<UserDoc>(collections.users);
-  const doc = await users.findOne({ email });
+  const norm = normalizeEmail(email);
+  let doc = await users.findOne({ email: norm });
+  if (!doc && norm) {
+    doc = await users.findOne({
+      email: { $regex: new RegExp(`^${norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") },
+    });
+  }
   return doc ? (mapMongoDoc(doc) as User) : null;
 }
 
 export async function findUserById(id: string): Promise<User | null> {
   const users = await getCollection<UserDoc>(collections.users);
-  const doc = await users.findOne({ _id: id });
+  let doc = await users.findOne({
+    $expr: { $eq: [{ $toString: "$_id" }, id] },
+  } as any);
+  if (!doc) {
+    doc = await users.findOne(userIdFilter(id));
+  }
   return doc ? (mapMongoDoc(doc) as User) : null;
 }
 
@@ -48,7 +87,7 @@ export async function createUser(input: {
   const doc: UserDoc = {
     _id: id,
     fullName: input.fullName,
-    email: input.email,
+    email: normalizeEmail(input.email),
     phone: input.phone ?? null,
     passwordHash: input.passwordHash,
     avatarUrl: input.avatarUrl ?? null,

@@ -13,12 +13,14 @@ export { findCategoryById, listActiveCategories } from "./dao/categoriesDao";
 export {
   findProviderProfileByUserId,
   findProviderProfileById,
+  findProviderProfilesByIds,
   createProviderProfile,
   updateProviderProfile,
   listVerifiedProviderProfilesWithUserSummary,
   countProviders,
   countProvidersByVerificationStatus,
 } from "./dao/providerProfilesDao";
+export type { VerificationStatus } from "./dao/providerProfilesDao";
 
 export { listServicesByProviderIdWithCategories, createServicesForProvider } from "./dao/providerServicesDao";
 
@@ -49,6 +51,7 @@ export {
 export {
   createReview,
   recalculateAndUpdateProviderAvgRating,
+  listReviewsByConsumerId,
   listReviewsByProviderIdWithConsumerName,
 } from "./dao/reviewsDao";
 
@@ -61,4 +64,23 @@ export {
 export {
   processMockPaymentAndUpdateBooking,
   sumPaidPaymentsAmount,
+  listPaymentsByConsumerId,
 } from "./dao/paymentsDao";
+
+export {
+  avgPlatformProviderRating,
+  bookingsAndRevenueByMonth,
+  listCategoryStats,
+  listUsersPaginated,
+  listAllProviderProfilesWithUser,
+  listAllBookingsAdmin,
+  listPaymentsAdmin,
+  platformCompletionRate,
+} from "./dao/adminDao";
+export type {
+  MonthPoint,
+  CategoryStatRow,
+  AdminProviderRow,
+  AdminBookingRow,
+  AdminPaymentRow,
+} from "./dao/adminDao";

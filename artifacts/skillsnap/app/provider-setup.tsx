@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
@@ -43,12 +44,23 @@ export default function ProviderSetupScreen() {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get("/categories"),
+    ...liveListQueryOptions,
   });
 
   const { data: existingProfile } = useQuery({
     queryKey: ["provider-me"],
-    queryFn: () => api.get("/provider/me"),
+    queryFn: async () => {
+      try {
+        return await api.get("/provider/me");
+      } catch (e: any) {
+        const m = String(e?.message || "");
+        // New providers have no profile yet — GET /provider/me returns 404.
+        if (m.toLowerCase().includes("not found")) return null;
+        throw e;
+      }
+    },
     retry: false,
+    ...liveListQueryOptions,
   });
 
   const toggleCategory = (id: string) => {
@@ -88,15 +100,25 @@ export default function ProviderSetupScreen() {
         });
       }
 
-      qc.invalidateQueries({ queryKey: ["provider-me"] });
-      qc.invalidateQueries({ queryKey: ["provider-dashboard"] });
+      await qc.invalidateQueries({ queryKey: ["provider-me"] });
+      await qc.invalidateQueries({ queryKey: ["provider-dashboard"] });
+
+      const goNext = () => {
+        // Avoid router.back() here: new providers often have no back stack (register uses replace),
+        // which breaks on web/native with "GO_BACK" / blank screen errors.
+        if (existingProfile) {
+          router.replace("/(provider-tabs)/profile" as any);
+        } else {
+          router.replace("/(provider-tabs)/dashboard" as any);
+        }
+      };
 
       Alert.alert(
         existingProfile ? "Profile Updated!" : "Profile Submitted!",
         existingProfile
           ? "Your profile has been updated successfully."
           : "Your provider profile has been submitted for verification. You'll be notified when approved.",
-        [{ text: "OK", onPress: () => router.back() }]
+        [{ text: "OK", onPress: goNext }]
       );
     } catch (e: any) {
       Alert.alert("Error", e.message || "Failed to save profile");
@@ -131,7 +153,9 @@ export default function ProviderSetupScreen() {
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace("/(provider-tabs)/dashboard" as any)
+          }
           style={styles.backBtn}
         >
           <Feather name="arrow-left" size={22} color={Colors.text} />

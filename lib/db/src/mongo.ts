@@ -36,6 +36,9 @@ export async function getMongoClient(): Promise<MongoClient> {
       strict: true,
       deprecationErrors: true,
     },
+    // Fail fast instead of hanging when Atlas/network is unreachable (common dev pain).
+    serverSelectionTimeoutMS: 15_000,
+    connectTimeoutMS: 15_000,
   });
 
   await mongoClient.connect();

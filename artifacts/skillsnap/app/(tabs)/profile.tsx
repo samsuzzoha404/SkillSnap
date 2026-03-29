@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const MENU_ITEMS = [
   { icon: "calendar-outline", label: "My Bookings", route: "/(tabs)/bookings" },
@@ -35,11 +36,12 @@ export default function ProfileScreen() {
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
     queryFn: () => api.get("/bookings"),
+    ...liveListQueryOptions,
   });
 
   const completedBookings = bookings.filter((b: any) => b.status === "completed").length;
   const activeBookings = bookings.filter((b: any) =>
-    ["requested", "accepted", "in_progress"].includes(b.status)
+    ["requested", "matched", "accepted", "on_the_way", "arrived", "in_progress"].includes(b.status)
   ).length;
 
   const handleLogout = async () => {

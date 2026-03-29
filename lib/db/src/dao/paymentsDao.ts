@@ -2,6 +2,7 @@ import { getCollection, collections } from "../mongo";
 import { mapMongoDoc } from "./utils";
 import { newId } from "./id";
 import { createNotification } from "./notificationsDao";
+import type { BookingDoc } from "./bookingsDao";
 import { findBookingById, updateBookingPayment } from "./bookingsDao";
 
 export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
@@ -81,5 +82,16 @@ export async function sumPaidPaymentsAmount(): Promise<number> {
   const coll = await getCollection<PaymentDoc>(collections.payments);
   const paid = await coll.find({ status: "paid" }).toArray();
   return paid.reduce((s, p) => s + Number(p.amount), 0);
+}
+
+export async function listPaymentsByConsumerId(consumerId: string): Promise<Payment[]> {
+  const bookingsColl = await getCollection<BookingDoc>(collections.bookings);
+  const bookingDocs = await bookingsColl.find({ consumerId }).project({ _id: 1 }).toArray();
+  const bookingIds = bookingDocs.map((b) => b._id);
+  if (bookingIds.length === 0) return [];
+
+  const paymentsColl = await getCollection<PaymentDoc>(collections.payments);
+  const docs = await paymentsColl.find({ bookingId: { $in: bookingIds } }).sort({ createdAt: -1 }).toArray();
+  return docs.map((d) => mapMongoDoc(d) as Payment);
 }
 

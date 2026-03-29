@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveFastQueryOptions } from "@/lib/liveQuery";
 import { StarRating } from "@/components/StarRating";
 
 export default function MatchesScreen() {
@@ -32,6 +33,7 @@ export default function MatchesScreen() {
     queryKey: ["matches", requestId],
     queryFn: () => api.get(`/matching/${requestId}`),
     enabled: !!requestId,
+    ...liveFastQueryOptions,
   });
 
   const { mutate: createBooking } = useMutation({

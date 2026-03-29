@@ -5,22 +5,45 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { AppState, AppStateStatus, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
+import { LIVE_POLL_MS } from "@/lib/liveQuery";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30000 },
+    queries: {
+      retry: 1,
+      staleTime: Math.min(10_000, LIVE_POLL_MS),
+      gcTime: 10 * 60_000,
+      refetchOnReconnect: true,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      networkMode: "online",
+    },
   },
 });
+
+function QueryProviderWithSync({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const onAppState = (s: AppStateStatus) => {
+      focusManager.setFocused(s === "active");
+    };
+    const sub = AppState.addEventListener("change", onAppState);
+    return () => sub.remove();
+  }, []);
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
 
 function RootLayoutNav() {
   return (
@@ -61,13 +84,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
+        <QueryProviderWithSync>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <AuthProvider>
               <RootLayoutNav />
             </AuthProvider>
           </GestureHandlerRootView>
-        </QueryClientProvider>
+        </QueryProviderWithSync>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

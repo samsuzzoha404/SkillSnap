@@ -43,8 +43,15 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     try {
-      await register({ fullName: fullName.trim(), email: email.trim().toLowerCase(), password, phone: phone.trim(), role });
-      if (role === "provider") {
+      const created = await register({
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim(),
+        role,
+      });
+      // Navigate from server role so we stay in sync if API normalizes role.
+      if (created.role === "provider") {
         router.replace("/provider-setup" as any);
       } else {
         router.replace("/(tabs)");

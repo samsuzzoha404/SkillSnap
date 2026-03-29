@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
@@ -35,9 +36,18 @@ export default function ProviderProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const { data: profile, isLoading, refetch } = useQuery({
+  const { data: profile, isLoading, refetch, isError, error } = useQuery({
     queryKey: ["provider-me"],
-    queryFn: () => api.get("/provider/me"),
+    queryFn: async () => {
+      try {
+        return await api.get("/provider/me");
+      } catch (e: any) {
+        const m = String(e?.message || "").toLowerCase();
+        if (m.includes("not found") || m.includes("404")) return null;
+        throw e;
+      }
+    },
+    ...liveListQueryOptions,
     retry: false,
   });
 
@@ -98,6 +108,65 @@ export default function ProviderProfileScreen() {
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F0FDF4" }}>
         <ActivityIndicator size="large" color={P_ACCENT} />
       </View>
+    );
+  }
+
+  if (isError && error) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+          backgroundColor: "#F0FDF4",
+        }}
+      >
+        <Feather name="wifi-off" size={40} color="#64748B" />
+        <Text style={{ marginTop: 16, textAlign: "center", color: P_COLOR, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+          Could not load profile
+        </Text>
+        <Text style={{ marginTop: 8, textAlign: "center", color: "#64748B", fontSize: 13, fontFamily: "Inter_400Regular" }}>
+          {(error as Error).message}
+        </Text>
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: "#F0FDF4" }}
+        contentContainerStyle={{ paddingTop: topPad + 24, paddingBottom: botPad + 40, paddingHorizontal: 24 }}
+      >
+        <View style={{ alignItems: "center", marginBottom: 24 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: P_ACCENT, alignItems: "center", justifyContent: "center" }}>
+            <Feather name="briefcase" size={32} color="#fff" />
+          </View>
+          <Text style={{ fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.text, marginTop: 16, textAlign: "center" }}>
+            Complete your provider profile
+          </Text>
+          <Text style={{ fontFamily: "Inter_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", marginTop: 8, lineHeight: 22 }}>
+            Add your business details so customers can find you. After submission, status stays Pending until an admin verifies you.
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            backgroundColor: P_ACCENT,
+            paddingVertical: 16,
+            borderRadius: 14,
+          }}
+          onPress={() => router.push("/provider-setup" as any)}
+          activeOpacity={0.85}
+        >
+          <Feather name="arrow-right" size={18} color="#fff" />
+          <Text style={{ fontFamily: "Inter_600SemiBold", fontSize: 16, color: "#fff" }}>Set up profile</Text>
+        </TouchableOpacity>
+      </ScrollView>
     );
   }
 

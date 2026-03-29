@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
-    "seed": "tsx ./src/seed.ts",
+    "seed": "tsx --import ./src/loadEnv.ts ./src/seed.ts",
+    "verify-api": "tsx --import ./src/loadEnv.ts ./src/verifyApi.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
-    "bcryptjs": "*"
+    "bcryptjs": "*",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "*",

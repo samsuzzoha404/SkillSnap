@@ -132,6 +132,18 @@ async function seed() {
     console.log("Created demo consumer");
   }
 
+  const adminEmail = "admin@skillsnap.my";
+  if (!(await findUserByEmail(adminEmail))) {
+    await createUser({
+      fullName: "SkillSnap Admin",
+      email: adminEmail,
+      passwordHash: demoPassword,
+      phone: null,
+      role: "admin",
+    });
+    console.log("Created demo admin");
+  }
+
   for (const [categoryIndex, category] of categories.entries()) {
     const categoryId = categoryIdByName.get(category.name);
     if (!categoryId) continue;

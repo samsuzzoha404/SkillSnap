@@ -375,6 +375,21 @@ paths:
                 $ref: "#/components/schemas/Booking"
 
   /reviews:
+    get:
+      operationId: listMyReviews
+      tags: [reviews]
+      summary: List reviews written by the authenticated consumer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Reviews for current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
     post:
       operationId: createReview
       tags: [reviews]
@@ -433,6 +448,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/Notification"
 
+  /payments:
+    get:
+      operationId: listMyPayments
+      tags: [payments]
+      summary: List payments for the authenticated consumer
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Payment records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentRecord"
+
   /payments/initiate:
     post:
       operationId: initiatePayment
@@ -458,7 +490,7 @@ paths:
     get:
       operationId: getAdminStats
       tags: [admin]
-      summary: Get platform statistics
+      summary: Get platform statistics (admin only)
       security:
         - bearerAuth: []
       responses:
@@ -468,6 +500,191 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not an admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [admin]
+      summary: Bookings and revenue by month (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: months
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: Time series for charts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalyticsResponse"
+
+  /admin/category-stats:
+    get:
+      operationId: getAdminCategoryStats
+      tags: [admin]
+      summary: Per-category provider counts, bookings, avg rating (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Category rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminCategoryStatRow"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: Paginated users with optional role filter (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [consumer, provider, admin]
+      responses:
+        "200":
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUsersPage"
+
+  /admin/providers:
+    get:
+      operationId: listAdminProviders
+      tags: [admin]
+      summary: Paginated provider profiles with user summary (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: verificationStatus
+          in: query
+          schema:
+            type: string
+            enum: [pending, verified, rejected]
+      responses:
+        "200":
+          description: Paginated providers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProvidersPage"
+
+  /admin/providers/verification:
+    patch:
+      operationId: patchAdminProviderVerification
+      tags: [admin]
+      summary: Approve or reject a provider profile (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminProviderVerificationRequest"
+      responses:
+        "200":
+          description: Updated provider with user summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminProviderWithUser"
+        "400":
+          description: Invalid body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/bookings:
+    get:
+      operationId: listAdminBookings
+      tags: [admin]
+      summary: Global booking list with joins (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paginated bookings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBookingsPage"
+
+  /admin/payments:
+    get:
+      operationId: listAdminPayments
+      tags: [admin]
+      summary: Payments with consumer/provider names (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Paginated payments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminPaymentsPage"
 
 components:
   securitySchemes:
@@ -970,6 +1187,36 @@ components:
         - currency
         - message
 
+    PaymentRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        provider:
+          type: string
+        externalPaymentId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+        paidAt:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - bookingId
+        - amount
+        - currency
+        - status
+        - createdAt
+
     AdminStats:
       type: object
       properties:
@@ -989,6 +1236,10 @@ components:
           type: number
         avgRating:
           type: number
+        completionRate:
+          type: number
+        openDisputes:
+          type: number
       required:
         - totalUsers
         - totalProviders
@@ -998,3 +1249,181 @@ components:
         - totalRevenue
         - pendingVerifications
         - avgRating
+        - completionRate
+        - openDisputes
+
+    AdminAnalyticsResponse:
+      type: object
+      properties:
+        series:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              bookings:
+                type: number
+              revenue:
+                type: number
+            required: [month, bookings, revenue]
+      required:
+        - series
+
+    AdminCategoryStatRow:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        name:
+          type: string
+        providerCount:
+          type: number
+        bookingCount:
+          type: number
+        avgProviderRating:
+          type: number
+      required:
+        - categoryId
+        - name
+        - providerCount
+        - bookingCount
+        - avgProviderRating
+
+    AdminUsersPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: number
+      required:
+        - items
+        - total
+
+    AdminProvidersPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: number
+      required:
+        - items
+        - total
+
+    AdminProviderVerificationRequest:
+      type: object
+      required:
+        - providerId
+        - verificationStatus
+      properties:
+        providerId:
+          type: string
+          description: Provider profile id (MongoDB _id)
+        verificationStatus:
+          type: string
+          enum: [verified, rejected]
+        reason:
+          type: string
+          description: Optional note shown to provider when rejected
+
+    AdminUserSummary:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+      required:
+        - fullName
+        - email
+
+    AdminProviderWithUser:
+      type: object
+      description: Provider profile row with owner summary (admin PATCH/list item shape)
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        businessName:
+          type: string
+        bio:
+          type: string
+        yearsExperience:
+          type: number
+        avgRating:
+          type: number
+        totalJobs:
+          type: number
+        completionRate:
+          type: number
+        acceptanceRate:
+          type: number
+        serviceRadiusKm:
+          type: number
+        verificationStatus:
+          type: string
+          enum: [pending, verified, rejected]
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/AdminUserSummary"
+      required:
+        - id
+        - userId
+        - businessName
+        - verificationStatus
+        - createdAt
+        - updatedAt
+        - user
+
+    AdminBookingsPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: number
+      required:
+        - items
+        - total
+
+    AdminPaymentsPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: number
+      required:
+        - items
+        - total

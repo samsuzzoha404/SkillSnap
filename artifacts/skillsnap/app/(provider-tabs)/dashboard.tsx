@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_DARK = "#0A3D27";
@@ -52,6 +53,7 @@ export default function ProviderDashboard() {
   const { data: dashboard, isLoading, refetch, error } = useQuery({
     queryKey: ["provider-dashboard"],
     queryFn: () => api.get("/provider/dashboard"),
+    ...liveListQueryOptions,
     retry: false,
   });
 
@@ -94,6 +96,34 @@ export default function ProviderDashboard() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F0FDF4" }}>
         <ActivityIndicator size="large" color={P_ACCENT} />
+      </View>
+    );
+  }
+
+  if (error && !noProfile) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+          backgroundColor: "#F0FDF4",
+        }}
+      >
+        <Feather name="wifi-off" size={40} color="#64748B" />
+        <Text style={{ marginTop: 16, textAlign: "center", color: P_DARK, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+          Could not load dashboard
+        </Text>
+        <Text style={{ marginTop: 8, textAlign: "center", color: "#64748B", fontSize: 13, fontFamily: "Inter_400Regular" }}>
+          {(error as Error).message}
+        </Text>
+        <TouchableOpacity
+          onPress={() => void refetch()}
+          style={{ marginTop: 20, paddingHorizontal: 20, paddingVertical: 12, backgroundColor: P_ACCENT, borderRadius: 10 }}
+        >
+          <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold" }}>Try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }

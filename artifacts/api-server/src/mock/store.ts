@@ -216,6 +216,17 @@ export const users: MockUser[] = [
     passwordHash: pw,
     createdAt: "2025-01-25T08:00:00.000Z",
   },
+  {
+    id: "usr_admin_001",
+    fullName: "SkillSnap Admin",
+    email: "admin@skillsnap.my",
+    phone: "",
+    role: "admin",
+    avatarUrl: null,
+    isActive: true,
+    passwordHash: pw,
+    createdAt: "2025-01-01T08:00:00.000Z",
+  },
 ];
 
 export const categories: MockCategory[] = [

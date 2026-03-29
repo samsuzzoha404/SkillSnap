@@ -1,6 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiBase } from "@/lib/apiBase";
 
+/** Fail fast when the API host is wrong or unreachable (avoids minutes of loading on device). */
+const FETCH_TIMEOUT_MS = 22_000;
+
 async function getToken() {
   return AsyncStorage.getItem("auth_token");
 }
@@ -14,9 +17,26 @@ async function apiCall(path: string, options: RequestInit = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const base = getApiBase();
-  const res = await fetch(`${base}${path}`, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "API Error");
+  const url = `${base}${path}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(url, { ...options, headers, signal: controller.signal });
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    const e = err as { name?: string; message?: string };
+    const reason =
+      e?.name === "AbortError" ? `Request timed out after ${FETCH_TIMEOUT_MS / 1000}s` : e?.message || String(err);
+    const devHint = typeof __DEV__ !== "undefined" && __DEV__ ? ` — ${url}` : "";
+    throw new Error(`${reason}${devHint}`);
+  }
+  clearTimeout(timeoutId);
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.message || `API Error (${res.status})`);
   return data;
 }
 

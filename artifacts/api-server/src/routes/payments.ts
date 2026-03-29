@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
-import { processMockPaymentAndUpdateBooking } from "@workspace/db";
+import { listPaymentsByConsumerId, processMockPaymentAndUpdateBooking } from "@workspace/db";
 
 const router = Router();
 
@@ -8,6 +8,22 @@ async function processPayment(bookingId: string, amount: number, res: import("ex
   const result = await processMockPaymentAndUpdateBooking({ bookingId, amount });
   return res.json(result);
 }
+
+router.get("/", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const payments = await listPaymentsByConsumerId(req.userId!);
+    return res.json(
+      payments.map((p) => ({
+        ...p,
+        paidAt: p.paidAt?.toISOString() ?? null,
+        createdAt: p.createdAt.toISOString(),
+      })),
+    );
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "InternalError", message: "Failed to fetch payments" });
+  }
+});
 
 router.post("/initiate", requireAuth, async (req: AuthRequest, res) => {
   try {

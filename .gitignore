@@ -47,3 +47,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Environment — use *.env.example as templates; do not commit secrets
+.env
+admin/.env
+artifacts/api-server/.env
+artifacts/skillsnap/.env

@@ -60,6 +60,20 @@ export async function recalculateAndUpdateProviderAvgRating(providerId: string):
   return avg;
 }
 
+export async function listReviewsByConsumerId(consumerId: string): Promise<ReviewWithConsumer[]> {
+  const reviewsColl = await getCollection<ReviewDoc>(collections.reviews);
+  const usersColl = await getCollection<UserDoc>(collections.users);
+
+  const reviews = await reviewsColl.find({ consumerId }).sort({ createdAt: -1 }).toArray();
+  const consumer = await usersColl.findOne({ _id: consumerId } as any);
+  const consumerName = consumer ? (consumer as any).fullName ?? "Anonymous" : "Anonymous";
+
+  return reviews.map((r) => {
+    const review = mapMongoDoc(r) as Review;
+    return { ...review, consumerName };
+  });
+}
+
 export async function listReviewsByProviderIdWithConsumerName(providerId: string): Promise<ReviewWithConsumer[]> {
   const reviewsColl = await getCollection<ReviewDoc>(collections.reviews);
   const usersColl = await getCollection<UserDoc>(collections.users);

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const P_COLOR = "#0D5C3A";
 const P_ACCENT = "#10B981";
@@ -44,6 +45,7 @@ export default function ProviderEarnings() {
   const { data: earnings, isLoading, refetch } = useQuery({
     queryKey: ["provider-earnings"],
     queryFn: () => api.get("/provider/earnings"),
+    ...liveListQueryOptions,
     retry: false,
   });
 

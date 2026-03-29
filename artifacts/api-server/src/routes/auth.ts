@@ -15,18 +15,23 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Missing required fields" });
     }
 
-    const existing = await findUserByEmail(email);
+    const emailNorm = String(email).trim().toLowerCase();
+    const roleNorm = String(role).trim().toLowerCase();
+    const safeRole = roleNorm === "provider" ? "provider" : "consumer";
+
+    const existing = await findUserByEmail(emailNorm);
     if (existing) {
       return res.status(400).json({ error: "ConflictError", message: "Email already registered" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+
     const user = await createUser({
-      fullName,
-      email,
+      fullName: String(fullName).trim(),
+      email: emailNorm,
       passwordHash,
       phone: phone ?? null,
-      role: (role as any) ?? "consumer",
+      role: safeRole,
     });
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
@@ -58,7 +63,13 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "ValidationError", message: "Email and password required" });
     }
 
-    const user = await findUserByEmail(email);
+    const emailNorm = String(email).trim().toLowerCase();
+    /** Mock fixtures used tan.wei.ming@; Mongo seed uses electrical.1@ for the same demo story. */
+    const LOGIN_EMAIL_ALIASES: Record<string, string> = {
+      "tan.wei.ming@skillsnap.my": "electrical.1@skillsnap.my",
+    };
+    const lookupEmail = LOGIN_EMAIL_ALIASES[emailNorm] ?? emailNorm;
+    const user = await findUserByEmail(lookupEmail);
     if (!user) {
       return res.status(401).json({ error: "AuthError", message: "Invalid credentials" });
     }

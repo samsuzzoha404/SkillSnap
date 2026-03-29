@@ -12,7 +12,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Colors } from "@/constants/colors";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { liveListQueryOptions } from "@/lib/liveQuery";
 
 const NOTIF_ICONS: Record<string, any> = {
   service_request: "document-text",
@@ -41,6 +43,7 @@ function timeAgo(dateStr: string) {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const { token } = useAuth();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -48,6 +51,9 @@ export default function NotificationsScreen() {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => api.get("/notifications"),
+    ...liveListQueryOptions,
+    enabled: !!token,
+    retry: false,
   });
 
   const { mutate: markRead } = useMutation({
