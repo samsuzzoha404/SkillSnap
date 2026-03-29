@@ -100,6 +100,10 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "NotFound", message: "Service request not found" });
     }
 
+    if (row.request.consumerId !== req.userId) {
+      return res.status(403).json({ error: "Forbidden", message: "You do not have access to this service request" });
+    }
+
     return res.json({
       ...row.request,
       category: row.category,

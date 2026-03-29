@@ -4,8 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "kill-port 8080",
+    "predev:run": "kill-port 8080",
+    "prestart": "kill-port 8080",
     "dev": "cross-env NODE_ENV=development CHOKIDAR_USEPOLLING=1 tsx watch ./src/index.ts",
-    "dev:run": "cross-env NODE_ENV=development tsx ./src/index.ts",
+    "dev:run": "cross-env NODE_ENV=development node --import tsx ./src/index.ts",
+    "start": "cross-env NODE_ENV=development node --import tsx ./src/index.ts",
     "dev:pretty": "cross-env NODE_ENV=development PINOTTY=1 CHOKIDAR_USEPOLLING=1 tsx watch ./src/index.ts",
     "build": "tsx ./build.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -31,6 +35,7 @@
     "@types/node": "catalog:",
     "cross-env": "^7.0.3",
     "esbuild": "^0.27.3",
+    "kill-port": "^2.0.1",
     "pino-pretty": "^13",
     "tsx": "catalog:"
   }

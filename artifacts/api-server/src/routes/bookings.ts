@@ -3,12 +3,20 @@ import { requireAuth, AuthRequest } from "../middleware/auth.js";
 import {
   createBooking,
   createNotification,
+  findBookingById,
+  findProviderProfileByUserId,
   getBookingDetails,
   listBookingsByConsumerId,
   listBookingsByProviderId,
   updateBookingStatus,
   updateServiceRequestStatus,
 } from "@workspace/db";
+import {
+  bookingParty,
+  getProviderUserIdForBooking,
+  isValidStatusTransition,
+  parseBookingStatus,
+} from "../lib/bookingAccess.js";
 
 const router = Router();
 
@@ -45,6 +53,17 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       isRead: false,
     });
 
+    const providerUserId = await getProviderUserIdForBooking(booking);
+    if (providerUserId) {
+      await createNotification({
+        userId: providerUserId,
+        type: "booking_created",
+        title: "New booking request",
+        body: "A customer booked your service. Check your inbox to accept or decline.",
+        isRead: false,
+      });
+    }
+
     return res.status(201).json({
       ...booking,
       scheduledAt: booking!.scheduledAt.toISOString(),
@@ -61,10 +80,16 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     const { role } = req.query;
 
     const roleParam = Array.isArray(role) ? role[0] : role;
-    const bookings =
-      roleParam === "provider"
-        ? await listBookingsByProviderId(req.userId!)
-        : await listBookingsByConsumerId(req.userId!);
+    let bookings;
+    if (roleParam === "provider") {
+      const profile = await findProviderProfileByUserId(req.userId!);
+      if (!profile) {
+        return res.json([]);
+      }
+      bookings = await listBookingsByProviderId(profile.id);
+    } else {
+      bookings = await listBookingsByConsumerId(req.userId!);
+    }
 
     return res.json(
       bookings.map((b) => ({
@@ -75,7 +100,7 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
         completedAt: b.completedAt?.toISOString() || null,
         cancelledAt: b.cancelledAt?.toISOString() || null,
         createdAt: b.createdAt.toISOString(),
-      }))
+      })),
     );
   } catch (err) {
     console.error(err);
@@ -94,6 +119,12 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
     if (!details) {
       return res.status(404).json({ error: "NotFound", message: "Booking not found" });
     }
+
+    const party = await bookingParty(details.booking, req.userId);
+    if (!party) {
+      return res.status(403).json({ error: "Forbidden", message: "You do not have access to this booking" });
+    }
+
     return res.json({
       ...details.booking,
       scheduledAt: details.booking.scheduledAt.toISOString(),
@@ -140,21 +171,58 @@ router.patch("/:id/status", requireAuth, async (req: AuthRequest, res) => {
     if (!id) {
       return res.status(400).json({ error: "ValidationError", message: "Invalid booking id" });
     }
-    const { status } = req.body;
 
-    const updated = await updateBookingStatus(id, status);
+    const nextStatus = parseBookingStatus(req.body);
+    if (!nextStatus) {
+      return res.status(400).json({ error: "ValidationError", message: "Invalid or missing status" });
+    }
+
+    const booking = await findBookingById(id);
+    if (!booking) {
+      return res.status(404).json({ error: "NotFound", message: "Booking not found" });
+    }
+
+    const party = await bookingParty(booking, req.userId);
+    if (!party) {
+      return res.status(403).json({ error: "Forbidden", message: "You cannot update this booking" });
+    }
+
+    if (!isValidStatusTransition(booking.status, nextStatus, party)) {
+      return res.status(400).json({
+        error: "ValidationError",
+        message: `Cannot change status from ${booking.status} to ${nextStatus} for this role`,
+      });
+    }
+
+    const updated = await updateBookingStatus(id, nextStatus);
 
     if (!updated) {
       return res.status(404).json({ error: "NotFound", message: "Booking not found" });
     }
 
-    await createNotification({
-      userId: updated.consumerId,
-      type: "booking_status",
-      title: `Booking ${status.replace(/_/g, " ")}`,
-      body: `Your booking status has been updated to: ${status.replace(/_/g, " ")}`,
-      isRead: false,
-    });
+    const title = `Booking ${nextStatus.replace(/_/g, " ")}`;
+    const body = `Your booking status has been updated to: ${nextStatus.replace(/_/g, " ")}`;
+
+    if (booking.consumerId === req.userId) {
+      const providerUserId = await getProviderUserIdForBooking(booking);
+      if (providerUserId) {
+        await createNotification({
+          userId: providerUserId,
+          type: "booking_status",
+          title,
+          body,
+          isRead: false,
+        });
+      }
+    } else {
+      await createNotification({
+        userId: updated.consumerId,
+        type: "booking_status",
+        title,
+        body,
+        isRead: false,
+      });
+    }
 
     return res.json({
       ...updated,

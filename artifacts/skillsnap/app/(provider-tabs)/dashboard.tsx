@@ -67,7 +67,8 @@ export default function ProviderDashboard() {
   const isVerified = dashboard?.profile?.verificationStatus === "verified";
   const isPending = dashboard?.profile?.verificationStatus === "pending";
   const isRejected = dashboard?.profile?.verificationStatus === "rejected";
-  const noProfile = error && (error as any).message?.includes("not found");
+  const errMsg = String((error as Error)?.message || "").toLowerCase();
+  const noProfile = !!error && (errMsg.includes("not found") || errMsg.includes("404"));
 
   if (noProfile) {
     return (

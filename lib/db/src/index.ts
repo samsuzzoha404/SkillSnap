@@ -47,9 +47,11 @@ export {
   countBookingsByStatus,
   updateBookingPayment,
 } from "./dao/bookingsDao";
+export type { Booking, BookingStatus } from "./dao/bookingsDao";
 
 export {
   createReview,
+  findReviewByBookingId,
   recalculateAndUpdateProviderAvgRating,
   listReviewsByConsumerId,
   listReviewsByProviderIdWithConsumerName,

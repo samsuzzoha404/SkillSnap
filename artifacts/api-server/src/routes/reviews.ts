@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from "../middleware/auth.js";
 import {
   createReview,
   findBookingById,
+  findReviewByBookingId,
   findUserById,
   listReviewsByConsumerId,
   recalculateAndUpdateProviderAvgRating,
@@ -36,6 +37,21 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     const booking = await findBookingById(bookingId);
     if (!booking) {
       return res.status(404).json({ error: "NotFound", message: "Booking not found" });
+    }
+
+    if (booking.consumerId !== req.userId) {
+      return res.status(403).json({ error: "Forbidden", message: "You can only review your own bookings" });
+    }
+    if (booking.status !== "completed") {
+      return res.status(400).json({ error: "ValidationError", message: "You can only review completed bookings" });
+    }
+    if (booking.paymentStatus !== "paid") {
+      return res.status(400).json({ error: "ValidationError", message: "You can only review after payment is completed" });
+    }
+
+    const existing = await findReviewByBookingId(bookingId);
+    if (existing) {
+      return res.status(400).json({ error: "ValidationError", message: "A review already exists for this booking" });
     }
 
     const review = await createReview({

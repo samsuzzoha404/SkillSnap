@@ -19,6 +19,12 @@ export type Review = Omit<ReviewDoc, "_id"> & { id: string };
 
 export type ReviewWithConsumer = Review & { consumerName: string };
 
+export async function findReviewByBookingId(bookingId: string): Promise<Review | null> {
+  const coll = await getCollection<ReviewDoc>(collections.reviews);
+  const doc = await coll.findOne({ bookingId });
+  return doc ? (mapMongoDoc(doc) as Review) : null;
+}
+
 export async function createReview(input: {
   id?: string;
   bookingId: string;

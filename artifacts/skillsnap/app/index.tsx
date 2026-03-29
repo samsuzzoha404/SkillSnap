@@ -6,6 +6,13 @@ import * as Linking from "expo-linking";
 import { useAuth } from "@/context/AuthContext";
 import { Colors } from "@/constants/colors";
 
+/** Full URL to the Vite admin app (see `artifacts/skillsnap/.env.example`). */
+function getAdminPanelUrl(): string {
+  const raw = process.env.EXPO_PUBLIC_ADMIN_URL?.trim();
+  if (raw) return raw.replace(/\/+$/, "");
+  return "http://localhost:5173";
+}
+
 function AdminScreen({ onLogout }: { onLogout: () => void }) {
   return (
     <View style={styles.adminContainer}>
@@ -19,7 +26,7 @@ function AdminScreen({ onLogout }: { onLogout: () => void }) {
         </Text>
         <TouchableOpacity
           style={styles.adminBtn}
-          onPress={() => Linking.openURL("http://localhost:5173")}
+          onPress={() => Linking.openURL(getAdminPanelUrl())}
           activeOpacity={0.85}
         >
           <Ionicons name="open-outline" size={18} color={Colors.primary} />
