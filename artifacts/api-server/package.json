@@ -12,6 +12,7 @@
     "start": "cross-env NODE_ENV=development node --import tsx ./src/index.ts",
     "dev:pretty": "cross-env NODE_ENV=development PINOTTY=1 CHOKIDAR_USEPOLLING=1 tsx watch ./src/index.ts",
     "build": "tsx ./build.ts",
+    "start:prod": "node dist/index.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
