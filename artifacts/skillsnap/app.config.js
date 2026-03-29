@@ -25,7 +25,9 @@ module.exports = {
     ios: {
       supportsTablet: false,
     },
-    android: {},
+    android: {
+      package: "com.heisenberg404.skillsnap",
+    },
     web: {
       favicon: "./assets/images/icon.png",
     },
@@ -45,6 +47,9 @@ module.exports = {
     },
     extra: {
       apiDevHost,
+      eas: {
+        projectId: "8c4d7601-80ad-4e3b-9b59-eed82331d3d2",
+      },
     },
   },
 };

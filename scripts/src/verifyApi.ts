@@ -1,11 +1,13 @@
 /**
  * Smoke test: health, public categories, admin/consumer/provider JWT paths.
- * Requires API running (default http://localhost:8080/api) and seeded DB (pnpm --filter @workspace/scripts seed).
+ * Requires API running (default from API_VERIFY_BASE_URL or production Render URL) and seeded DB (pnpm --filter @workspace/scripts seed).
  * Run with: tsx --import ./src/loadEnv.ts ./src/verifyApi.ts
  */
 
 const base =
-  (process.env.API_VERIFY_BASE_URL || "http://localhost:8080/api").replace(/\/+$/, "");
+  (
+    process.env.API_VERIFY_BASE_URL || "https://skillsnap-ushm.onrender.com/api"
+  ).replace(/\/+$/, "");
 
 async function login(email: string, password: string): Promise<string> {
   const loginRes = await fetch(`${base}/auth/login`, {
